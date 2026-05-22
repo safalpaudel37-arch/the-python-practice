@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MAX_ATTEMPTS } from '@/lib/config';
 import type { Question, QuestionStatus } from '@/lib/types';
+import type { WrongAttemptContext } from '@/components/Compiler';
 import AttemptsCounter from './AttemptsCounter';
 import RevealPrompt from './RevealPrompt';
 import SolutionCard from './SolutionCard';
@@ -13,6 +14,7 @@ interface Props {
   question: Question | null;
   attemptCount: number;
   questionStatus: QuestionStatus;
+  wrongContext?: WrongAttemptContext;
   onTryAgain: () => void;
   onNextQuestion: () => void;
   onMarkSolved: () => void;
@@ -22,6 +24,7 @@ export default function SolutionRevealPanel({
   question,
   attemptCount,
   questionStatus,
+  wrongContext,
   onTryAgain,
   onNextQuestion,
   onMarkSolved,
@@ -48,7 +51,7 @@ export default function SolutionRevealPanel({
       style={{ maxHeight: stage === 'hidden' && attemptCount === 0 ? '0' : undefined }}
     >
       {stage === 'hidden' && attemptCount > 0 && (
-        <AttemptsCounter attemptCount={attemptCount} />
+        <AttemptsCounter attemptCount={attemptCount} question={question} wrongContext={wrongContext} />
       )}
       {stage === 'unlocked' && (
         <RevealPrompt onReveal={() => setRevealed(true)} />

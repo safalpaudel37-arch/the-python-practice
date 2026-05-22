@@ -12,7 +12,7 @@ import MobileDrawer from '@/components/layout/MobileDrawer';
 import ShortcutsHelpDialog from '@/components/ShortcutsHelpDialog';
 import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { useTheme } from '@/lib/hooks/useTheme';
-import type { CompilerHandle } from '@/components/Compiler';
+import type { CompilerHandle, WrongAttemptContext } from '@/components/Compiler';
 import type { Question, QuestionStatus } from '@/lib/types';
 import { getNextQuestion, getPrevQuestion } from '@/lib/questions';
 import { STARTER_CODE } from '@/lib/config';
@@ -52,6 +52,7 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
   const [isDetailOpen, setIsDetailOpen] = useState(true);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [attemptCounts, setAttemptCounts] = useState<Record<string, number>>({});
+  const [lastWrongContext, setLastWrongContext] = useState<Record<string, WrongAttemptContext>>({});
   const [statuses, setStatuses] = useState<Record<string, QuestionStatus>>({});
   const [compilerStatus, setCompilerStatus] = useState<'idle' | 'loading' | 'running' | 'error'>('loading');
   const [bridgeReady, setBridgeReady] = useState(false);
@@ -97,7 +98,7 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
     [selectedId]
   );
 
-  const handleAttempt = useCallback((questionId: string, passed: boolean) => {
+  const handleAttempt = useCallback((questionId: string, passed: boolean, wrongContext?: WrongAttemptContext) => {
     if (passed) {
       setStatuses((prev) => ({ ...prev, [questionId]: 'solved' }));
       setAttemptCounts((prev) => ({ ...prev, [questionId]: 0 }));
@@ -112,6 +113,9 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
         if (prev[questionId] === 'solved') return prev;
         return { ...prev, [questionId]: 'attempted' };
       });
+      if (wrongContext) {
+        setLastWrongContext((prev) => ({ ...prev, [questionId]: wrongContext }));
+      }
     }
   }, []);
 
@@ -169,7 +173,7 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
   );
 
   const handleAttemptForCurrent = useCallback(
-    (passed: boolean) => handleAttempt(selectedId, passed),
+    (passed: boolean, wrongContext?: WrongAttemptContext) => handleAttempt(selectedId, passed, wrongContext),
     [selectedId, handleAttempt]
   );
 
@@ -245,6 +249,7 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
             question={selectedQuestion}
             attemptCount={attemptCount}
             questionStatus={questionStatus}
+            wrongContext={lastWrongContext[selectedId]}
             onTryAgain={handleTryAgain}
             onNextQuestion={handleNextQuestion}
             onMarkSolved={handleMarkSolved}

@@ -31,10 +31,15 @@ export interface CompilerHandle {
   isReady(): boolean;
 }
 
+export interface WrongAttemptContext {
+  userCode: string;
+  userAnswer: string;
+}
+
 interface CompilerProps {
   question?: Question | null;
   initialCode?: string;
-  onAttempt?: (passed: boolean) => void;
+  onAttempt?: (passed: boolean, wrongContext?: WrongAttemptContext) => void;
   onStatusChange?: (status: Status, bridgeReady: boolean, hasRun: boolean) => void;
 }
 
@@ -252,10 +257,19 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
         signal: AbortSignal.timeout(5000),
       })
         .then((r) => r.ok ? r.json() : { correct: false })
-        .then((data: { correct?: boolean }) => onAttemptRef.current?.(data.correct ?? false))
-        .catch(() => onAttemptRef.current?.(false));
+        .then((data: { correct?: boolean }) => {
+          const passed = data.correct ?? false;
+          onAttemptRef.current?.(passed, passed ? undefined : {
+            userCode: q.type === 'write_the_code' ? codeRef.current : '',
+            userAnswer,
+          });
+        })
+        .catch(() => onAttemptRef.current?.(false, {
+          userCode: codeRef.current,
+          userAnswer,
+        }));
     } else {
-      onAttemptRef.current(false);
+      onAttemptRef.current(false, { userCode: codeRef.current, userAnswer: '' });
     }
   }, []);
 
