@@ -19,14 +19,16 @@ function checkRateLimit(ip: string): boolean {
 }
 
 function buildPrompt(
+  language: string,
   questionType: string,
   questionText: string,
   correctAnswer: string,
   userCode: string,
   userAnswer: string,
 ): string {
+  const langLabel = language === 'javascript' ? 'JavaScript' : 'Python';
   const codeBlock = userCode.trim() ? `Student's code:\n${userCode}\n` : '';
-  return `You are a friendly Python tutor helping a beginner student.
+  return `You are a friendly ${langLabel} tutor helping a beginner student.
 The student got a question wrong and needs a small hint to guide them.
 
 Question type: ${questionType}
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 
-  const { questionId, questionText, questionType, correctAnswer, userCode, userAnswer } =
+  const { questionId, questionText, questionType, questionLanguage, correctAnswer, userCode, userAnswer } =
     (body as Record<string, unknown>) ?? {};
 
   if (
@@ -76,11 +78,13 @@ export async function POST(req: NextRequest) {
   }
 
   const safe = (s: string) => s.slice(0, MAX_FIELD_LENGTH);
+  const language = typeof questionLanguage === 'string' ? questionLanguage : 'python';
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = buildPrompt(
+      language,
       safe(questionType),
       safe(questionText),
       safe(correctAnswer),

@@ -26,7 +26,7 @@ const LANGUAGES = [
   { slug: 'numpy',      label: 'NumPy'      },
 ];
 
-const SUPPORTED_LANGS = new Set(['python']);
+const SUPPORTED_LANGS = new Set(['python', 'javascript']);
 
 interface Props {
   questions: Question[];

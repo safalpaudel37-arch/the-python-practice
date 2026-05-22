@@ -6,7 +6,7 @@ import OutputPanel from "@/components/OutputPanel";
 import OutputPredictionPanel from "@/components/OutputPredictionPanel";
 import CompilerToolbar from "@/components/CompilerToolbar";
 import { WorkerBridge, OutputLine } from "@/components/execution/worker-bridge";
-import { AUTO_CHECK_TYPES, STARTER_CODE } from "@/lib/config";
+import { AUTO_CHECK_TYPES, JS_STARTER_CODE, STARTER_CODE } from "@/lib/config";
 import { setSavedCode } from "@/lib/storage";
 import type { Question } from "@/lib/types";
 import type { EditorPanelHandle } from "@/components/EditorPanel";
@@ -36,11 +36,17 @@ export interface WrongAttemptContext {
   userAnswer: string;
 }
 
+interface HintProps {
+  question: Question;
+  wrongContext: WrongAttemptContext;
+}
+
 interface CompilerProps {
   question?: Question | null;
   initialCode?: string;
   onAttempt?: (passed: boolean, wrongContext?: WrongAttemptContext) => void;
   onStatusChange?: (status: Status, bridgeReady: boolean, hasRun: boolean) => void;
+  hintProps?: HintProps;
 }
 
 /** Trim trailing whitespace per line then trim leading/trailing blank lines. */
@@ -105,10 +111,14 @@ function debounce<T extends unknown[]>(fn: (...args: T) => void, ms: number) {
 }
 
 const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
-  { question, initialCode, onAttempt, onStatusChange },
+  { question, initialCode, onAttempt, onStatusChange, hintProps },
   ref
 ) {
-  const [code, setCode] = useState(initialCode ?? STARTER_CODE);
+  const language = question?.language ?? 'python';
+  const workerUrl = language === 'javascript' ? '/js-worker.js' : '/pyodide-worker.js';
+  const defaultCode = language === 'javascript' ? JS_STARTER_CODE : STARTER_CODE;
+
+  const [code, setCode] = useState(initialCode ?? defaultCode);
   const [output, setOutput] = useState<OutputLine[]>([]);
   const [status, setStatus] = useState<Status>("loading");
   const [inputPrompt, setInputPrompt] = useState<string | null>(null);
@@ -152,19 +162,22 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
 
   // Reset editor and output when question changes
   useEffect(() => {
-    setCode(initialCode ?? STARTER_CODE);
+    setCode(initialCode ?? defaultCode);
     setOutput([]);
     setInputPrompt(null);
     setHasRun(false);
     setUserPrediction('');
     pendingOutputRef.current = '';
     lastStdoutRef.current = '';
-  // initialCode intentionally excluded — only reset on question change
+  // initialCode and defaultCode intentionally excluded — only reset on question change
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question?.id]);
 
   useEffect(() => {
-    if (typeof SharedArrayBuffer === "undefined") {
+    setBridgeReady(false);
+    setStatus("loading");
+
+    if (language === 'python' && typeof SharedArrayBuffer === "undefined") {
       setOutput([{
         text: "⚠️ SharedArrayBuffer not available. The input() function will not work. Please use Chrome or Firefox with cross-origin isolation enabled.",
         type: "error",
@@ -172,6 +185,7 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
       setStatus("idle");
       setBridgeReady(true);
     }
+
     const bridge = new WorkerBridge({
       onReady: () => {
         setBridgeReady(true);
@@ -221,11 +235,12 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
           setBridgeReady(false);
         }
       },
-    });
+    }, workerUrl);
 
     bridgeRef.current = bridge;
     return () => bridge.terminate();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workerUrl]);
 
   const handleRun = useCallback(() => {
     if (!bridgeRef.current) return;
@@ -344,6 +359,8 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
             ? bridgeReady && status === 'idle'
             : hasRun && bridgeReady && status === 'idle'
         }
+        hintProps={hintProps}
+        language={language}
       />
 
       {isPredictionType ? (
@@ -361,9 +378,10 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
             <EditorPanel
               key={question?.id ?? 'default'}
               ref={editorRef}
-              initialCode={initialCode ?? STARTER_CODE}
+              initialCode={initialCode ?? defaultCode}
               onChange={handleCodeChange}
               onRun={handleRun}
+              language={language}
             />
           </div>
 

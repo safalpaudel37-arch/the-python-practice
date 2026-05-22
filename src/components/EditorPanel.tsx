@@ -5,6 +5,7 @@ import { EditorView, basicSetup } from "codemirror";
 import { EditorState, Prec } from "@codemirror/state";
 import { keymap } from "@codemirror/view";
 import { python } from "@codemirror/lang-python";
+import { javascript } from "@codemirror/lang-javascript";
 
 const editorTheme = EditorView.theme({
   "&": { height: "100%" },
@@ -21,10 +22,11 @@ type Props = {
   initialCode: string;
   onChange: (code: string) => void;
   onRun?: () => void;
+  language?: 'python' | 'javascript';
 };
 
 const EditorPanel = forwardRef<EditorPanelHandle, Props>(function EditorPanel(
-  { initialCode, onChange, onRun },
+  { initialCode, onChange, onRun, language = 'python' },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,7 +55,7 @@ const EditorPanel = forwardRef<EditorPanelHandle, Props>(function EditorPanel(
         doc: initialCode,
         extensions: [
           basicSetup,
-          python(),
+          language === 'javascript' ? javascript() : python(),
           editorTheme,
           Prec.highest(
             keymap.of([

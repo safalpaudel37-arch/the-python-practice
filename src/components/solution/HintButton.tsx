@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { Sparkles, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { Question } from '@/lib/types';
 import type { WrongAttemptContext } from '@/components/Compiler';
 
@@ -16,8 +21,14 @@ interface Props {
 type HintState = 'idle' | 'loading' | 'shown' | 'error';
 
 export default function HintButton({ question, wrongContext }: Props) {
+  const [open, setOpen] = useState(false);
   const [hintState, setHintState] = useState<HintState>('idle');
   const [hintText, setHintText] = useState('');
+
+  useEffect(() => {
+    setHintState('idle');
+    setHintText('');
+  }, [wrongContext]);
 
   const fetchHint = async () => {
     setHintState('loading');
@@ -29,6 +40,7 @@ export default function HintButton({ question, wrongContext }: Props) {
           questionId: question.id,
           questionText: question.question,
           questionType: question.type,
+          questionLanguage: question.language,
           correctAnswer: question.answer,
           userCode: wrongContext.userCode,
           userAnswer: wrongContext.userAnswer,
@@ -44,47 +56,55 @@ export default function HintButton({ question, wrongContext }: Props) {
     }
   };
 
-  if (hintState === 'loading') {
-    return (
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-1">
-        <Spinner className="size-3" />
-        Generating hint…
-      </div>
-    );
-  }
-
-  if (hintState === 'shown') {
-    return (
-      <Alert className="py-2 border-blue-500/30 bg-blue-500/8 relative pr-8">
-        <Sparkles className="size-3.5 text-blue-500" />
-        <AlertDescription className="text-xs text-foreground/80 leading-relaxed">
-          {hintText}
-        </AlertDescription>
-        <button
-          onClick={() => setHintState('idle')}
-          aria-label="Dismiss hint"
-          className="absolute top-1.5 right-1.5 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <X className="size-3" />
-        </button>
-      </Alert>
-    );
-  }
+  const handleOpen = () => {
+    setOpen(true);
+    if (hintState === 'idle' || hintState === 'error') {
+      fetchHint();
+    }
+  };
 
   return (
-    <div className="flex items-center gap-2">
+    <>
       <Button
-        variant="ghost"
-        size="xs"
-        onClick={fetchHint}
-        className="text-muted-foreground hover:text-foreground gap-1"
+        variant="outline"
+        size="sm"
+        onClick={handleOpen}
+        className="gap-1.5 text-muted-foreground hover:text-foreground"
       >
-        <Sparkles className="size-3" />
-        Get a hint
+        <Sparkles className="size-3.5" />
+        Hint
       </Button>
-      {hintState === 'error' && (
-        <span className="text-xs text-destructive">Could not load hint. Try again.</span>
-      )}
-    </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="size-4 text-blue-500" />
+              Hint
+            </DialogTitle>
+          </DialogHeader>
+
+          {hintState === 'loading' && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+              <Spinner className="size-4" />
+              Generating hint…
+            </div>
+          )}
+
+          {hintState === 'shown' && (
+            <p className="text-sm leading-relaxed">{hintText}</p>
+          )}
+
+          {hintState === 'error' && (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-destructive">Could not generate a hint. Try again?</p>
+              <Button variant="outline" size="sm" onClick={fetchHint} className="self-start">
+                Try again
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

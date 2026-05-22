@@ -6,7 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
-import type { QuestionStatus } from '@/lib/types';
+import HintButton from '@/components/solution/HintButton';
+import type { Question, QuestionStatus } from '@/lib/types';
+import type { WrongAttemptContext } from '@/components/Compiler';
+
+interface HintProps {
+  question: Question;
+  wrongContext: WrongAttemptContext;
+}
 
 interface Props {
   isDark: boolean;
@@ -21,6 +28,7 @@ interface Props {
   statuses: Record<string, QuestionStatus>;
   showBackButton?: boolean;
   hideRun?: boolean;
+  hintProps?: HintProps;
 }
 
 export default function AppHeader({
@@ -36,6 +44,7 @@ export default function AppHeader({
   statuses,
   showBackButton = false,
   hideRun = false,
+  hintProps,
 }: Props) {
   const totalSolved = Object.values(statuses).filter((s) => s === 'solved').length;
 
@@ -135,6 +144,12 @@ export default function AppHeader({
           <SendHorizonal className="size-3.5 mr-1" />
           Submit
         </Button>
+
+        {hintProps && (
+          <div className="lg:hidden">
+            <HintButton question={hintProps.question} wrongContext={hintProps.wrongContext} />
+          </div>
+        )}
       </div>
     </header>
   );

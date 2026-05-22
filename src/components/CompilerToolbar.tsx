@@ -4,8 +4,16 @@ import { Play, SendHorizonal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import HintButton from '@/components/solution/HintButton';
+import type { Question } from '@/lib/types';
+import type { WrongAttemptContext } from '@/components/Compiler';
 
 type Status = 'idle' | 'loading' | 'running' | 'error';
+
+interface HintProps {
+  question: Question;
+  wrongContext: WrongAttemptContext;
+}
 
 interface Props {
   status: Status;
@@ -14,20 +22,24 @@ interface Props {
   onSubmit: () => void;
   canSubmit: boolean;
   hideRun?: boolean;
+  hintProps?: HintProps;
+  language?: 'python' | 'javascript';
 }
 
-export default function CompilerToolbar({ status, bridgeReady, onRun, onSubmit, canSubmit, hideRun = false }: Props) {
+export default function CompilerToolbar({ status, bridgeReady, onRun, onSubmit, canSubmit, hideRun = false, hintProps, language = 'python' }: Props) {
   const isRunning = status === 'running';
   const isLoading = status === 'loading' || !bridgeReady;
+  const filename = language === 'javascript' ? 'main.js' : 'main.py';
+  const loadingLabel = language === 'javascript' ? 'Loading JavaScript…' : 'Loading Python…';
 
   return (
     <div className="hidden lg:flex items-center justify-between px-4 py-2 border-b border-border bg-background shrink-0">
       <div className="flex items-center gap-2">
         <Badge variant="outline" className="font-mono text-xs">
-          main.py
+          {filename}
         </Badge>
         {isLoading && !isRunning && (
-          <span className="text-xs text-muted-foreground animate-pulse">Loading Python…</span>
+          <span className="text-xs text-muted-foreground animate-pulse">{loadingLabel}</span>
         )}
         {bridgeReady && !isRunning && (
           <span className="text-xs text-green-500">● Ready</span>
@@ -77,6 +89,10 @@ export default function CompilerToolbar({ status, bridgeReady, onRun, onSubmit, 
           <SendHorizonal className="size-3.5 mr-1" />
           Submit
         </Button>
+
+        {hintProps && (
+          <HintButton question={hintProps.question} wrongContext={hintProps.wrongContext} />
+        )}
       </div>
     </div>
   );

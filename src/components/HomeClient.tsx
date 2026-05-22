@@ -15,7 +15,7 @@ import { useTheme } from '@/lib/hooks/useTheme';
 import type { CompilerHandle, WrongAttemptContext } from '@/components/Compiler';
 import type { Question, QuestionStatus } from '@/lib/types';
 import { getNextQuestion, getPrevQuestion } from '@/lib/questions';
-import { STARTER_CODE } from '@/lib/config';
+import { JS_STARTER_CODE, STARTER_CODE } from '@/lib/config';
 import {
   getAllStatuses,
   getAllAttemptCounts,
@@ -91,9 +91,11 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
   const attemptCount = attemptCounts[selectedId] ?? 0;
   const questionStatus = statuses[selectedId] ?? 'not_started';
 
+  const defaultStarterCode = selectedQuestion?.language === 'javascript' ? JS_STARTER_CODE : STARTER_CODE;
+
   // Saved code for the current question — read at selection time
   const savedCode = useMemo(
-    () => getSavedCode(selectedId) ?? STARTER_CODE,
+    () => getSavedCode(selectedId) ?? defaultStarterCode,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selectedId]
   );
@@ -212,6 +214,11 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
           selectedQuestion?.type === 'output_prediction' ||
           selectedQuestion?.type === 'what_is_the_result'
         }
+        hintProps={
+          selectedQuestion && lastWrongContext[selectedId]
+            ? { question: selectedQuestion, wrongContext: lastWrongContext[selectedId] }
+            : undefined
+        }
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -242,6 +249,11 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
               initialCode={savedCode}
               onAttempt={handleAttemptForCurrent}
               onStatusChange={handleStatusChange}
+              hintProps={
+                selectedQuestion && lastWrongContext[selectedId]
+                  ? { question: selectedQuestion, wrongContext: lastWrongContext[selectedId] }
+                  : undefined
+              }
             />
           </div>
 
@@ -249,7 +261,6 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
             question={selectedQuestion}
             attemptCount={attemptCount}
             questionStatus={questionStatus}
-            wrongContext={lastWrongContext[selectedId]}
             onTryAgain={handleTryAgain}
             onNextQuestion={handleNextQuestion}
             onMarkSolved={handleMarkSolved}

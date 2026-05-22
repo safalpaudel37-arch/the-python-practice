@@ -74,7 +74,7 @@ export default function ProgressPanel({ questions, statuses }: Props) {
       return next;
     });
 
-  const totalSolved = Object.values(statuses).filter((s) => s === 'solved').length;
+  const totalSolved = questions.filter((q) => statuses[q.id] === 'solved').length;
   const totalAll = questions.length;
   const overallPct = totalAll > 0 ? Math.round((totalSolved / totalAll) * 100) : 0;
 

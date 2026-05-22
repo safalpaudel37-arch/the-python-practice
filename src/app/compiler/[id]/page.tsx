@@ -12,7 +12,10 @@ export default async function CompilerPage({ params }: Props) {
 
   let questions;
   try {
-    questions = await getQuestions();
+    const all = await getQuestions();
+    // Show only questions of the same language as the target question
+    const target = all.find((q) => q.id === id);
+    questions = target ? all.filter((q) => q.language === target.language) : all;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return (

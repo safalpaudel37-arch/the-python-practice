@@ -24,8 +24,11 @@ export class WorkerBridge {
   private inputMetaBuffer: Int32Array | null = null;
   private hasSAB: boolean;
 
-  constructor(callbacks: BridgeCallbacks) {
+  private workerUrl: string;
+
+  constructor(callbacks: BridgeCallbacks, workerUrl = '/pyodide-worker.js') {
     this.callbacks = callbacks;
+    this.workerUrl = workerUrl;
     this.hasSAB = typeof SharedArrayBuffer !== "undefined";
 
     if (this.hasSAB) {
@@ -45,7 +48,7 @@ export class WorkerBridge {
   }
 
   private spawnWorker() {
-    this.worker = new Worker("/pyodide-worker.js");
+    this.worker = new Worker(this.workerUrl);
     this.worker.onmessage = (e) => this.handleMessage(e.data);
     this.worker.onerror = (e) => {
       this.clearTimeout();
