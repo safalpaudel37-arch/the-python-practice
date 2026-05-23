@@ -23,14 +23,20 @@ interface Props {
   canSubmit: boolean;
   hideRun?: boolean;
   hintProps?: HintProps;
-  language?: 'python' | 'javascript';
+  language?: 'python' | 'javascript' | 'sql';
 }
 
 export default function CompilerToolbar({ status, bridgeReady, onRun, onSubmit, canSubmit, hideRun = false, hintProps, language = 'python' }: Props) {
   const isRunning = status === 'running';
   const isLoading = status === 'loading' || !bridgeReady;
-  const filename = language === 'javascript' ? 'main.js' : 'main.py';
-  const loadingLabel = language === 'javascript' ? 'Loading JavaScript…' : 'Loading Python…';
+  const filename =
+    language === 'sql' ? 'query.sql' : language === 'javascript' ? 'main.js' : 'main.py';
+  const loadingLabel =
+    language === 'sql'
+      ? 'Loading SQL…'
+      : language === 'javascript'
+        ? 'Loading JavaScript…'
+        : 'Loading Python…';
 
   return (
     <div className="hidden lg:flex items-center justify-between px-4 py-2 border-b border-border bg-background shrink-0">

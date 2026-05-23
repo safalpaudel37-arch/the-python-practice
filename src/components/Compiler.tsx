@@ -5,9 +5,10 @@ import dynamic from "next/dynamic";
 import OutputPanel from "@/components/OutputPanel";
 import OutputPredictionPanel from "@/components/OutputPredictionPanel";
 import CompilerToolbar from "@/components/CompilerToolbar";
-import { WorkerBridge, OutputLine } from "@/components/execution/worker-bridge";
-import { AUTO_CHECK_TYPES, JS_STARTER_CODE, STARTER_CODE } from "@/lib/config";
+import { WorkerBridge, OutputLine, WorkerConfig } from "@/components/execution/worker-bridge";
+import { AUTO_CHECK_TYPES, JS_STARTER_CODE, SQL_STARTER_CODE, STARTER_CODE } from "@/lib/config";
 import { setSavedCode } from "@/lib/storage";
+import { parseSqlQuestion } from "@/lib/sql/parse";
 import type { Question } from "@/lib/types";
 import type { EditorPanelHandle } from "@/components/EditorPanel";
 
@@ -115,8 +116,20 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
   ref
 ) {
   const language = question?.language ?? 'python';
-  const workerUrl = language === 'javascript' ? '/js-worker.js' : '/pyodide-worker.js';
-  const defaultCode = language === 'javascript' ? JS_STARTER_CODE : STARTER_CODE;
+  const workerConfig: WorkerConfig =
+    language === 'sql'
+      ? { url: '/sql-worker.js', type: 'module' }
+      : language === 'javascript'
+        ? '/js-worker.js'
+        : '/pyodide-worker.js';
+  const defaultCode =
+    language === 'sql'
+      ? SQL_STARTER_CODE
+      : language === 'javascript'
+        ? JS_STARTER_CODE
+        : STARTER_CODE;
+  const workerKey =
+    typeof workerConfig === 'string' ? workerConfig : workerConfig.url;
 
   const [code, setCode] = useState(initialCode ?? defaultCode);
   const [output, setOutput] = useState<OutputLine[]>([]);
@@ -235,12 +248,12 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
           setBridgeReady(false);
         }
       },
-    }, workerUrl);
+    }, workerConfig);
 
     bridgeRef.current = bridge;
     return () => bridge.terminate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workerUrl]);
+  }, [workerKey]);
 
   const handleRun = useCallback(() => {
     if (!bridgeRef.current) return;
@@ -251,12 +264,29 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
     setHasRun(false);
     lastStdoutRef.current = '';
     setStatus("running");
-    bridgeRef.current.run(code);
+
+    const q = currentQuestionRef.current;
+    const setupCode =
+      q?.language === 'sql' ? parseSqlQuestion(q.question).setupSql : undefined;
+    bridgeRef.current.run(code, setupCode || undefined);
   }, [code]);
 
   const handleSubmit = useCallback(() => {
     const q = currentQuestionRef.current;
     if (!onAttemptRef.current) return;
+
+    // Client-side check for SQL and JS write_the_code — no pre-computed expected_output
+    if (q && q.type === 'write_the_code' && (q.language === 'sql' || q.language === 'javascript')) {
+      const setupCode = q.language === 'sql' ? parseSqlQuestion(q.question).setupSql : undefined;
+      bridgeRef.current?.checkAnswer(codeRef.current, q.answer, setupCode || undefined).then((correct) => {
+        onAttemptRef.current?.(correct, correct ? undefined : {
+          userCode: codeRef.current,
+          userAnswer: lastStdoutRef.current,
+        });
+      });
+      return;
+    }
+
     if (q && AUTO_CHECK_TYPES.has(q.type)) {
       const userAnswer =
         q.type === 'fill_in_the_blank'
