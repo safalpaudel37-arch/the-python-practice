@@ -79,6 +79,7 @@ const TABLE_MAP: Record<string, string> = {
   'c++':      'cpp_questions',
   cpp:        'cpp_questions',
   rust:       'rust_questions',
+  sql : "sql_questions",
 }
 
 const VALID_TIERS = ['simple', 'intermediate', 'hard', 'expert'] as const

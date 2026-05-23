@@ -12,6 +12,8 @@ type BridgeCallbacks = {
 
 const TIMEOUT_MS = 60000;
 
+export type WorkerConfig = string | { url: string; type: 'module' };
+
 export class WorkerBridge {
   private worker: Worker | null = null;
   private callbacks: BridgeCallbacks;
@@ -24,11 +26,11 @@ export class WorkerBridge {
   private inputMetaBuffer: Int32Array | null = null;
   private hasSAB: boolean;
 
-  private workerUrl: string;
+  private workerConfig: WorkerConfig;
 
-  constructor(callbacks: BridgeCallbacks, workerUrl = '/pyodide-worker.js') {
+  constructor(callbacks: BridgeCallbacks, workerConfig: WorkerConfig = '/pyodide-worker.js') {
     this.callbacks = callbacks;
-    this.workerUrl = workerUrl;
+    this.workerConfig = workerConfig;
     this.hasSAB = typeof SharedArrayBuffer !== "undefined";
 
     if (this.hasSAB) {
@@ -48,7 +50,11 @@ export class WorkerBridge {
   }
 
   private spawnWorker() {
-    this.worker = new Worker(this.workerUrl);
+    if (typeof this.workerConfig === 'string') {
+      this.worker = new Worker(this.workerConfig);
+    } else {
+      this.worker = new Worker(this.workerConfig.url, { type: this.workerConfig.type });
+    }
     this.worker.onmessage = (e) => this.handleMessage(e.data);
     this.worker.onerror = (e) => {
       this.clearTimeout();
@@ -92,7 +98,27 @@ export class WorkerBridge {
     }
   }
 
-  run(code: string) {
+  checkAnswer(code: string, referenceCode: string, setupCode?: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (!this.worker) { resolve(false); return; }
+      const handler = (e: MessageEvent) => {
+        const data = e.data as Record<string, unknown>;
+        if (data.type === 'check_result') {
+          this.worker!.removeEventListener('message', handler);
+          clearTimeout(tid);
+          resolve(Boolean(data.correct));
+        }
+      };
+      this.worker.addEventListener('message', handler);
+      const tid = setTimeout(() => {
+        this.worker?.removeEventListener('message', handler);
+        resolve(false);
+      }, TIMEOUT_MS);
+      this.worker.postMessage({ type: 'check', code, referenceCode, setupCode });
+    });
+  }
+
+  run(code: string, setupCode?: string) {
     if (!this.worker) return;
 
     const MAX_CODE_SIZE = 1024 * 1024;
@@ -118,6 +144,9 @@ export class WorkerBridge {
     }
 
     const message: Record<string, unknown> = { type: "run", code };
+    if (setupCode) {
+      message.setupCode = setupCode;
+    }
     if (this.hasSAB && this.inputBuffer && this.inputMetaBuffer) {
       message.inputBuffer = this.inputBuffer.buffer;
       message.inputMetaBuffer = this.inputMetaBuffer.buffer;

@@ -4,7 +4,7 @@ import type { Language, Question } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-const SUPPORTED_LANGS = new Set<string>(['python', 'javascript']);
+const SUPPORTED_LANGS = new Set<string>(['python', 'javascript', 'sql']);
 
 interface Props {
   params: Promise<{ lang: string }>;

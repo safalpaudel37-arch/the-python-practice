@@ -1,18 +1,25 @@
 import { getClient } from './client'
 import type { Language, Question } from '../types'
 
+const TABLE_MAP: Record<string, string> = {
+  python: 'questions',
+  javascript: 'javascript_questions',
+  sql: 'sql_questions',
+}
+
 export async function getQuestions(language?: Language): Promise<Question[]> {
-  let query = getClient()
-    .from('questions')
-    .select('id, tier, topic, type, question, answer, alternative_answer, explanation, language, created_at')
+  const table = language ? (TABLE_MAP[language] ?? 'questions') : 'questions'
+
+  const { data, error } = await getClient()
+    .from(table)
+    .select('id, tier, topic, type, question, answer, alternative_answer, explanation, created_at')
     .order('tier', { ascending: false })
     .order('id', { ascending: true })
 
-  if (language) {
-    query = query.eq('language', language)
-  }
-
-  const { data, error } = await query
   if (error) throw error
-  return data as Question[]
+
+  return (data as Omit<Question, 'language'>[]).map((row) => ({
+    ...row,
+    language: language ?? 'python',
+  })) as Question[]
 }

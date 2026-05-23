@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.sample
 
 # vercel
 .vercel
@@ -51,5 +52,9 @@ questions/*
 screenshot.mjs
 /scripts/
 
+# local-only admin pages (never ship to production)
+/src/app/admin/
+
 # claude code local settings
 .claude/settings.local.json
+.claude/worktrees/
