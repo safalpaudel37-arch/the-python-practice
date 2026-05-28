@@ -5,9 +5,10 @@ import dynamic from "next/dynamic";
 import OutputPanel from "@/components/OutputPanel";
 import OutputPredictionPanel from "@/components/OutputPredictionPanel";
 import CompilerToolbar from "@/components/CompilerToolbar";
-import { WorkerBridge, OutputLine } from "@/components/execution/worker-bridge";
-import { AUTO_CHECK_TYPES, JS_STARTER_CODE, STARTER_CODE } from "@/lib/config";
+import { WorkerBridge, OutputLine, WorkerConfig } from "@/components/execution/worker-bridge";
+import { AUTO_CHECK_TYPES, JS_STARTER_CODE, SQL_STARTER_CODE, STARTER_CODE } from "@/lib/config";
 import { setSavedCode } from "@/lib/storage";
+import { parseSqlQuestion } from "@/lib/sql/parse";
 import type { Question } from "@/lib/types";
 import type { EditorPanelHandle } from "@/components/EditorPanel";
 
@@ -16,6 +17,15 @@ const EditorPanel = dynamic(() => import("@/components/EditorPanel"), {
   loading: () => (
     <div className="flex-1 bg-background text-foreground flex items-center justify-center">
       <span className="text-muted-foreground text-sm">Loading editor…</span>
+    </div>
+  ),
+});
+
+const SqlCompiler = dynamic(() => import("@/components/sql/SqlCompiler"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 bg-background text-foreground flex items-center justify-center">
+      <span className="text-muted-foreground text-sm">Loading SQL engine…</span>
     </div>
   ),
 });
@@ -115,8 +125,20 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
   ref
 ) {
   const language = question?.language ?? 'python';
-  const workerUrl = language === 'javascript' ? '/js-worker.js' : '/pyodide-worker.js';
-  const defaultCode = language === 'javascript' ? JS_STARTER_CODE : STARTER_CODE;
+  const workerConfig: WorkerConfig =
+    language === 'sql'
+      ? { url: '/sql-worker.js', type: 'module' }
+      : language === 'javascript'
+        ? '/js-worker.js'
+        : '/pyodide-worker.js';
+  const defaultCode =
+    language === 'sql'
+      ? SQL_STARTER_CODE
+      : language === 'javascript'
+        ? JS_STARTER_CODE
+        : STARTER_CODE;
+  const workerKey =
+    typeof workerConfig === 'string' ? workerConfig : workerConfig.url;
 
   const [code, setCode] = useState(initialCode ?? defaultCode);
   const [output, setOutput] = useState<OutputLine[]>([]);
@@ -177,6 +199,9 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
     setBridgeReady(false);
     setStatus("loading");
 
+    // SQL questions are handled by SqlCompiler (main-thread PGlite) — no worker needed
+    if (language === 'sql') return;
+
     if (language === 'python' && typeof SharedArrayBuffer === "undefined") {
       setOutput([{
         text: "⚠️ SharedArrayBuffer not available. The input() function will not work. Please use Chrome or Firefox with cross-origin isolation enabled.",
@@ -235,12 +260,12 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
           setBridgeReady(false);
         }
       },
-    }, workerUrl);
+    }, workerConfig);
 
     bridgeRef.current = bridge;
     return () => bridge.terminate();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workerUrl]);
+  }, [workerKey]);
 
   const handleRun = useCallback(() => {
     if (!bridgeRef.current) return;
@@ -251,12 +276,29 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
     setHasRun(false);
     lastStdoutRef.current = '';
     setStatus("running");
-    bridgeRef.current.run(code);
+
+    const q = currentQuestionRef.current;
+    const setupCode =
+      q?.language === 'sql' ? parseSqlQuestion(q.question).setupSql : undefined;
+    bridgeRef.current.run(code, setupCode || undefined);
   }, [code]);
 
   const handleSubmit = useCallback(() => {
     const q = currentQuestionRef.current;
     if (!onAttemptRef.current) return;
+
+    // Client-side check for SQL and JS write_the_code — no pre-computed expected_output
+    if (q && q.type === 'write_the_code' && (q.language === 'sql' || q.language === 'javascript')) {
+      const setupCode = q.language === 'sql' ? parseSqlQuestion(q.question).setupSql : undefined;
+      bridgeRef.current?.checkAnswer(codeRef.current, q.answer, setupCode || undefined).then((correct) => {
+        onAttemptRef.current?.(correct, correct ? undefined : {
+          userCode: codeRef.current,
+          userAnswer: lastStdoutRef.current,
+        });
+      });
+      return;
+    }
+
     if (q && AUTO_CHECK_TYPES.has(q.type)) {
       const userAnswer =
         q.type === 'fill_in_the_blank'
@@ -343,6 +385,20 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
     question?.type === 'output_prediction' || question?.type === 'what_is_the_result';
 
   const canSubmitPrediction = userPrediction.trim().length > 0;
+
+  // SQL questions are fully handled by SqlCompiler (hooks above still run harmlessly)
+  if (language === 'sql') {
+    return (
+      <SqlCompiler
+        ref={ref}
+        question={question}
+        initialCode={initialCode}
+        onAttempt={onAttempt}
+        onStatusChange={onStatusChange}
+        hintProps={hintProps}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

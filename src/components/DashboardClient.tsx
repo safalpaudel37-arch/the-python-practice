@@ -21,12 +21,13 @@ const TYPE_FILTERS: { value: QuestionType; label: string }[] = [
 const LANGUAGES = [
   { slug: 'python',     label: 'Python'     },
   { slug: 'javascript', label: 'JavaScript' },
+  { slug: 'sql',        label: 'SQL'        },
   { slug: 'c',          label: 'C'          },
   { slug: 'pytorch',    label: 'PyTorch'    },
   { slug: 'numpy',      label: 'NumPy'      },
 ];
 
-const SUPPORTED_LANGS = new Set(['python', 'javascript']);
+const SUPPORTED_LANGS = new Set(['python', 'javascript', 'sql']);
 
 interface Props {
   questions: Question[];

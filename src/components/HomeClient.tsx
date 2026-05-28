@@ -15,7 +15,8 @@ import { useTheme } from '@/lib/hooks/useTheme';
 import type { CompilerHandle, WrongAttemptContext } from '@/components/Compiler';
 import type { Question, QuestionStatus } from '@/lib/types';
 import { getNextQuestion, getPrevQuestion } from '@/lib/questions';
-import { JS_STARTER_CODE, STARTER_CODE } from '@/lib/config';
+import { JS_STARTER_CODE, SQL_STARTER_CODE, STARTER_CODE } from '@/lib/config';
+import { parseSqlQuestion } from '@/lib/sql/parse';
 import {
   getAllStatuses,
   getAllAttemptCounts,
@@ -91,14 +92,29 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
   const attemptCount = attemptCounts[selectedId] ?? 0;
   const questionStatus = statuses[selectedId] ?? 'not_started';
 
-  const defaultStarterCode = selectedQuestion?.language === 'javascript' ? JS_STARTER_CODE : STARTER_CODE;
+  const defaultStarterCode =
+    selectedQuestion?.language === 'sql'
+      ? SQL_STARTER_CODE
+      : selectedQuestion?.language === 'javascript'
+        ? JS_STARTER_CODE
+        : STARTER_CODE;
 
   // Saved code for the current question — read at selection time
-  const savedCode = useMemo(
-    () => getSavedCode(selectedId) ?? defaultStarterCode,
+  const savedCode = useMemo(() => {
+    const saved = getSavedCode(selectedId);
+    if (saved) return saved;
+    if (selectedQuestion?.type === 'fill_in_the_blank') {
+      if (selectedQuestion.language === 'sql') {
+        const { templateAfter } = parseSqlQuestion(selectedQuestion.question);
+        if (templateAfter) return templateAfter;
+      } else {
+        const sepIdx = selectedQuestion.question.indexOf('\n\n');
+        if (sepIdx !== -1) return selectedQuestion.question.slice(sepIdx + 2);
+      }
+    }
+    return defaultStarterCode;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [selectedId]
-  );
+  }, [selectedId]);
 
   const handleAttempt = useCallback((questionId: string, passed: boolean, wrongContext?: WrongAttemptContext) => {
     if (passed) {

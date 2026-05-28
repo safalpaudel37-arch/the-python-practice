@@ -21,8 +21,41 @@ function truncate(lines) {
 // Post ready immediately — no WASM loading required
 self.postMessage({ type: 'ready' });
 
+function normalizeLines(lines) {
+  return truncate(lines).join('\n').split('\n').map((l) => l.trimEnd()).join('\n').trim();
+}
+
+function runCode(code) {
+  const stdoutLines = [];
+  const stderrLines = [];
+  const mockConsole = {
+    log: (...args) => stdoutLines.push(args.map(stringify).join(' ')),
+    info: (...args) => stdoutLines.push(args.map(stringify).join(' ')),
+    warn: (...args) => stderrLines.push('[warn] ' + args.map(stringify).join(' ')),
+    error: (...args) => stderrLines.push(args.map(stringify).join(' ')),
+    dir: (v) => stdoutLines.push(stringify(v)),
+    table: (v) => stdoutLines.push(stringify(v)),
+  };
+  try {
+    const fn = new Function('console', 'fetch', 'XMLHttpRequest', 'WebSocket', 'importScripts', code);
+    fn(mockConsole, undefined, undefined, undefined, undefined);
+  } catch (err) {
+    stderrLines.push(err instanceof Error ? err.name + ': ' + err.message : String(err));
+  }
+  return { stdoutLines, stderrLines };
+}
+
 self.onmessage = function (e) {
-  const { type, code } = e.data;
+  const { type, code, referenceCode } = e.data;
+
+  if (type === 'check') {
+    const { stdoutLines: userLines } = runCode(code);
+    const { stdoutLines: refLines } = runCode(referenceCode);
+    const correct = normalizeLines(userLines) === normalizeLines(refLines);
+    self.postMessage({ type: 'check_result', correct });
+    return;
+  }
+
   if (type !== 'run') return;
 
   const stdoutLines = [];
