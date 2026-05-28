@@ -21,6 +21,15 @@ const EditorPanel = dynamic(() => import("@/components/EditorPanel"), {
   ),
 });
 
+const SqlCompiler = dynamic(() => import("@/components/sql/SqlCompiler"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex-1 bg-background text-foreground flex items-center justify-center">
+      <span className="text-muted-foreground text-sm">Loading SQL engine…</span>
+    </div>
+  ),
+});
+
 type Status = "idle" | "loading" | "running" | "error";
 
 export interface CompilerHandle {
@@ -189,6 +198,9 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
   useEffect(() => {
     setBridgeReady(false);
     setStatus("loading");
+
+    // SQL questions are handled by SqlCompiler (main-thread PGlite) — no worker needed
+    if (language === 'sql') return;
 
     if (language === 'python' && typeof SharedArrayBuffer === "undefined") {
       setOutput([{
@@ -373,6 +385,20 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
     question?.type === 'output_prediction' || question?.type === 'what_is_the_result';
 
   const canSubmitPrediction = userPrediction.trim().length > 0;
+
+  // SQL questions are fully handled by SqlCompiler (hooks above still run harmlessly)
+  if (language === 'sql') {
+    return (
+      <SqlCompiler
+        ref={ref}
+        question={question}
+        initialCode={initialCode}
+        onAttempt={onAttempt}
+        onStatusChange={onStatusChange}
+        hintProps={hintProps}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
