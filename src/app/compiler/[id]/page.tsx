@@ -9,8 +9,9 @@ interface Props {
 }
 
 function detectLanguage(id: string): Language {
-  if (id.startsWith('SQL')) return 'sql';
-  if (id.startsWith('JS')) return 'javascript';
+  const upper = id.toUpperCase();
+  if (upper.startsWith('SQL')) return 'sql';
+  if (upper.startsWith('JS')) return 'javascript';
   return 'python';
 }
 

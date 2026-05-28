@@ -58,7 +58,7 @@ Existing files to **modify** (additive only):
 | `src/components/EditorPanel.tsx` | Add `@codemirror/lang-sql` syntax support |
 | `src/app/[lang]/page.tsx` | Add `'sql'` to `SUPPORTED_LANGS` |
 | `src/lib/supabase/queries.ts` | Ensure `Language` type import is updated (auto-follows types.ts) |
-| `next.config.ts` | Add `asyncWebAssembly: true` webpack experiment |
+| `next.config.ts` | Add `turbopack: {}` + `transpilePackages` (Turbopack handles WASM natively) |
 
 ---
 
@@ -92,10 +92,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@electric-sql/pglite'],
-  webpack(config) {
-    config.experiments = { ...config.experiments, asyncWebAssembly: true };
-    return config;
-  },
+  turbopack: {},  // Next.js 16 uses Turbopack by default; it handles WASM natively
   async headers() {
     return [
       {
@@ -801,7 +798,7 @@ After implementation, verify:
 
 1. **PGlite is ESM-only** — handled by `transpilePackages: ['@electric-sql/pglite']` in `next.config.ts`.
 
-2. **WASM in Next.js** — handled by `asyncWebAssembly: true` in webpack config.
+2. **WASM in Next.js 16** — Next.js 16 uses Turbopack by default, which handles WASM natively. Do **not** add a `webpack()` function — it will conflict with Turbopack and throw an error. Use `turbopack: {}` in the config instead (can be empty; it just signals intentional Turbopack usage).
 
 3. **`'use client'`** — `SqlCompiler.tsx` must have `'use client'` at the top; PGlite uses browser APIs.
 

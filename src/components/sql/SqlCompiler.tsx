@@ -59,6 +59,7 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
   const [hasRun, setHasRun] = useState(false);
 
   const [split, setSplit] = useState(60);
+  const [schemaRefreshKey, setSchemaRefreshKey] = useState(0);
   const dragging = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorPanelHandle>(null);
@@ -105,7 +106,8 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
     const res = await runQuery(codeRef.current);
     setResult(res);
     setHasRun(true);
-    setStatus(res.status === 'error' ? 'idle' : 'idle');
+    setStatus('idle');
+    setSchemaRefreshKey((k) => k + 1);
   }, [ready, status, runQuery]);
 
   const handleSubmit = useCallback(async () => {
@@ -143,6 +145,7 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
     setCode(fresh);
     setResult(null);
     setHasRun(false);
+    setSchemaRefreshKey((k) => k + 1);
     editorRef.current?.reset();
   }, [resetDb, initialCode]);
 
@@ -239,18 +242,22 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
           </div>
 
           {/* Schema browser + reset */}
-          <div className="border-t border-border p-3 bg-background flex flex-col gap-3 max-h-52 overflow-auto shrink-0">
+          <div className="border-t border-border p-3 bg-background flex flex-col gap-2 overflow-auto shrink-0" style={{ maxHeight: '55%' }}>
             <div className="flex items-center justify-between">
-              <span />
+              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider" />
               <button
                 onClick={handleReset}
                 disabled={!ready}
-                className="text-xs font-mono text-muted-foreground hover:text-foreground border border-border hover:border-foreground/40 rounded px-2 py-1 transition-colors disabled:opacity-40"
+                className="text-xs font-mono text-muted-foreground hover:text-foreground border border-border hover:border-foreground/40 rounded px-2 py-1 transition-colors disabled:opacity-40 shrink-0"
               >
                 Reset Data
               </button>
             </div>
-            <SqlSchemaPanel />
+            <SqlSchemaPanel
+              runQuery={runQuery}
+              ready={ready}
+              refreshKey={schemaRefreshKey}
+            />
           </div>
         </div>
       </div>
