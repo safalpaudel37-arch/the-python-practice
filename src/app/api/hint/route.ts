@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 10;
 const WINDOW_MS = 60_000;
 const MAX_FIELD_LENGTH = 5_000;
+
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+// Cheap but capable default — strong enough for short beginner hints, and far
+// more reliable than the previous Gemini free tier. Override via env to swap
+// models without code changes (e.g. deepseek/deepseek-chat, qwen/qwen-2.5-coder-32b-instruct).
+const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct';
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
@@ -60,7 +65,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'Hints not configured' }, { status: 503 });
   }
@@ -90,8 +95,6 @@ export async function POST(req: NextRequest) {
   const language = typeof questionLanguage === 'string' ? questionLanguage : 'python';
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = buildPrompt(
       language,
       safe(questionType),
@@ -100,8 +103,35 @@ export async function POST(req: NextRequest) {
       safe(userCode),
       safe(userAnswer),
     );
-    const result = await model.generateContent(prompt);
-    const hint = result.response.text().trim();
+
+    const res = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        // Optional attribution headers shown on OpenRouter's dashboard.
+        'HTTP-Referer': process.env.OPENROUTER_SITE_URL ?? 'http://localhost:3000',
+        'X-Title': 'Python Practice',
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL ?? DEFAULT_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 200,
+        temperature: 0.4,
+      }),
+    });
+
+    if (!res.ok) {
+      console.error('[hint] openrouter', res.status, await res.text());
+      return NextResponse.json({ error: 'Could not generate hint' }, { status: 500 });
+    }
+
+    const data = await res.json();
+    const hint = (data?.choices?.[0]?.message?.content ?? '').trim();
+    if (!hint) {
+      console.error('[hint] empty completion', JSON.stringify(data));
+      return NextResponse.json({ error: 'Could not generate hint' }, { status: 500 });
+    }
     return NextResponse.json({ hint });
   } catch (err) {
     console.error('[hint]', err);
