@@ -29,7 +29,7 @@ An interactive coding practice platform built with Next.js, supporting Python, J
 | Python runtime | Pyodide (WASM in a Web Worker) |
 | SQL runtime | PGlite (WASM) |
 | Database | Supabase (PostgreSQL) |
-| AI hints | Google Gemini Flash (`@google/generative-ai`) |
+| AI hints | OpenRouter (open-source LLMs, e.g. Llama 3.3) |
 
 ---
 
@@ -77,7 +77,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser. Chrome or F
 | `SUPABASE_ANON_KEY` | Yes | Supabase anonymous/public key (used for reads and RPC) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Dev only | Service role key — used by the admin bulk-insert endpoint only; never exposed to the browser |
 | `ADMIN_SECRET` | Dev only | Arbitrary secret to authenticate `POST /api/admin/add-questions` |
-| `GEMINI_API_KEY` | Optional | Google Gemini Flash API key; leave empty to disable the hint button |
+| `OPENROUTER_API_KEY` | Optional | OpenRouter API key; powers the hint button. Omit to disable hints |
+| `OPENROUTER_MODEL` | Optional | Override the hint model (default `meta-llama/llama-3.3-70b-instruct`) |
 
 > **Security note:** `SUPABASE_SERVICE_ROLE_KEY` and `ADMIN_SECRET` are only read server-side and are never sent to the client. The admin endpoint is disabled entirely in production (`NODE_ENV === 'production'`).
 
@@ -256,7 +257,7 @@ The app deploys to any platform that supports Next.js (Vercel, Railway, etc.). B
    Cross-Origin-Opener-Policy: same-origin
    Cross-Origin-Embedder-Policy: require-corp
    ```
-3. The `GEMINI_API_KEY` is optional — omit it to disable the hint button.
+3. The `OPENROUTER_API_KEY` is optional — omit it to disable the hint button.
 
 ---
 

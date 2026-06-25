@@ -136,64 +136,6 @@
   }
 }
 
-/* Result overlay (success / failure) — inline SVG animation, no video assets.
-   Renders identically on desktop and mobile; completes well within 1.5s. */
-.result-icon {
-  width: 9rem;
-  height: 9rem;
-  animation: result-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.result-icon--success {
-  filter: drop-shadow(0 6px 20px rgba(34, 197, 94, 0.45));
-}
-.result-icon--error {
-  filter: drop-shadow(0 6px 20px rgba(239, 68, 68, 0.45));
-}
-.result-icon__circle {
-  fill: none;
-  stroke-width: 6;
-  stroke-linecap: round;
-  stroke-dasharray: 295;
-  stroke-dashoffset: 295;
-  animation: result-draw 0.45s ease-out forwards;
-}
-.result-icon__mark {
-  fill: none;
-  stroke-width: 7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 120;
-  stroke-dashoffset: 120;
-  animation: result-draw 0.4s 0.32s ease-out forwards;
-}
-.result-icon--success .result-icon__circle,
-.result-icon--success .result-icon__mark {
-  stroke: #22c55e;
-}
-.result-icon--error .result-icon__circle,
-.result-icon--error .result-icon__mark {
-  stroke: #ef4444;
-}
-@keyframes result-pop {
-  0% { transform: scale(0.5); opacity: 0; }
-  60% { transform: scale(1.06); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-@keyframes result-draw {
-  to { stroke-dashoffset: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .result-icon,
-  .result-icon__circle,
-  .result-icon__mark {
-    animation: none;
-  }
-  .result-icon__circle,
-  .result-icon__mark {
-    stroke-dashoffset: 0;
-  }
-}
-
 .cm-editor {
   height: 100%;
   color: var(--foreground);

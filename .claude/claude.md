@@ -19,8 +19,10 @@ SUPABASE_ANON_KEY=
 # Dev-only (admin bulk insert endpoint):
 SUPABASE_SERVICE_ROLE_KEY=
 ADMIN_SECRET=
-# Hint button — Google Gemini Flash (free tier); leave empty to disable hints:
-GEMINI_API_KEY=
+# Hint button — OpenRouter; leave empty to disable hints:
+OPENROUTER_API_KEY=
+# Optional: override the hint model (default meta-llama/llama-3.3-70b-instruct):
+OPENROUTER_MODEL=
 ```
 
 Python execution requires `SharedArrayBuffer` (cross-origin isolation). Chrome and Firefox work; Safari may not.
