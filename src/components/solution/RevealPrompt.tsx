@@ -1,7 +1,5 @@
-import { Unlock } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { MAX_ATTEMPTS } from '@/lib/config';
+import { AttemptDots } from './AttemptsCounter';
 
 interface Props {
   onReveal: () => void;
@@ -9,22 +7,17 @@ interface Props {
 
 export default function RevealPrompt({ onReveal }: Props) {
   return (
-    <div className="px-4 py-2">
-      <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400">
-        <Unlock className="size-3.5 text-amber-500" />
-        <AlertTitle className="text-xs font-medium">Solution available</AlertTitle>
-        <AlertDescription className="text-xs mt-1">
-          You&apos;ve made {MAX_ATTEMPTS} attempts. You can still submit — or{' '}
-          <Button
-            variant="ghost"
-            size="xs"
-            onClick={onReveal}
-            className="text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 h-auto px-1.5 py-0.5 font-medium"
-          >
-            show the solution →
-          </Button>
-        </AlertDescription>
-      </Alert>
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+      <AttemptDots attemptCount={MAX_ATTEMPTS} />
+      <p className="text-[13.5px] font-semibold">
+        {MAX_ATTEMPTS} attempts made — you can still submit, or take a look.
+      </p>
+      <button
+        onClick={onReveal}
+        className="ml-auto rounded-[9px] bg-copper px-3.5 py-1.5 text-[13px] font-semibold text-white hover:-translate-y-px hover:bg-copper-600 hover:shadow-[0_8px_18px_rgba(174,110,21,.32)]"
+      >
+        Stuck? Reveal the solution →
+      </button>
     </div>
   );
 }

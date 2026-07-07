@@ -1,21 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Spinner } from '@/components/ui/spinner';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Lock, Sparkles, X } from 'lucide-react';
 import type { Question } from '@/lib/types';
 import type { WrongAttemptContext } from '@/components/Compiler';
 
 interface Props {
-  question: Question;
-  wrongContext: WrongAttemptContext;
+  question?: Question;
+  /** Undefined until the user has a wrong attempt — the hint stays locked. */
+  wrongContext?: WrongAttemptContext;
 }
 
 type HintState = 'idle' | 'loading' | 'shown' | 'error';
@@ -30,7 +23,10 @@ export default function HintButton({ question, wrongContext }: Props) {
     setHintText('');
   }, [wrongContext]);
 
+  const locked = !question || !wrongContext;
+
   const fetchHint = async () => {
+    if (!question || !wrongContext) return;
     setHintState('loading');
     try {
       const res = await fetch('/api/hint', {
@@ -57,6 +53,7 @@ export default function HintButton({ question, wrongContext }: Props) {
   };
 
   const handleOpen = () => {
+    if (locked) return;
     setOpen(true);
     if (hintState === 'idle' || hintState === 'error') {
       fetchHint();
@@ -65,46 +62,77 @@ export default function HintButton({ question, wrongContext }: Props) {
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
+      <button
         onClick={handleOpen}
-        className="gap-1.5 text-muted-foreground hover:text-foreground"
+        disabled={locked}
+        title={locked ? 'Submit an attempt first to unlock a hint' : 'Get an AI hint'}
+        className={
+          locked
+            ? 'flex h-8 cursor-not-allowed items-center gap-1.5 rounded-[9px] border border-line bg-surface-2 px-3 text-[13px] font-semibold text-ink-3'
+            : 'flex h-8 items-center gap-1.5 rounded-[9px] border border-copper/35 bg-copper-050 px-3 text-[13px] font-semibold text-copper hover:bg-copper-100'
+        }
       >
         <Sparkles className="size-3.5" />
         Hint
-      </Button>
+        {locked && <Lock className="size-3" />}
+      </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="size-4 text-blue-500" />
-              Hint
-            </DialogTitle>
-          </DialogHeader>
-
-          {hintState === 'loading' && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-              <Spinner className="size-4" />
-              Generating hint…
+      {open && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-[rgba(20,16,10,.4)] backdrop-blur-[3px] animate-[pp-fadein_.2s_ease_both]"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-label="Hint"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-[400px] overflow-hidden rounded-[18px] border border-copper/35 bg-surface shadow-[var(--shadow-lg)] animate-[pp-pop_.3s_ease_both]"
+          >
+            <div className="flex items-center justify-between bg-copper-050 px-5 py-3.5">
+              <span className="flex items-center gap-2 font-heading text-[15px] font-bold text-copper">
+                <Sparkles className="size-4" />
+                Hint
+              </span>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close hint"
+                className="grid size-7 place-items-center rounded-lg text-ink-2 hover:bg-copper-100"
+              >
+                <X className="size-4" />
+              </button>
             </div>
-          )}
 
-          {hintState === 'shown' && (
-            <p className="text-sm leading-relaxed">{hintText}</p>
-          )}
+            <div className="p-5">
+              {hintState === 'loading' && (
+                <div className="space-y-2.5">
+                  <div className="pp-skeleton h-[11px] w-full rounded" />
+                  <div className="pp-skeleton h-[11px] w-[85%] rounded" />
+                  <div className="pp-skeleton h-[11px] w-[60%] rounded" />
+                  <p className="pt-1 font-mono text-[11px] text-copper">generating hint…</p>
+                </div>
+              )}
 
-          {hintState === 'error' && (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-destructive">Could not generate a hint. Try again?</p>
-              <Button variant="outline" size="sm" onClick={fetchHint} className="self-start">
-                Try again
-              </Button>
+              {hintState === 'shown' && (
+                <p className="text-sm leading-relaxed animate-[pp-fadein_.3s_ease_both]">
+                  {hintText}
+                </p>
+              )}
+
+              {hintState === 'error' && (
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-red">Could not generate a hint. Try again?</p>
+                  <button
+                    onClick={fetchHint}
+                    className="self-start rounded-[9px] border-[1.5px] border-line-2 px-3 py-1.5 text-[13px] font-semibold text-ink-2 hover:border-copper hover:text-copper"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      )}
     </>
   );
 }

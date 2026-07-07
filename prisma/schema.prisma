@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model javascript_questions {
+  id                 String    @id
+  tier               String
+  topic              String
+  type               String
+  question           String
+  answer             String
+  alternative_answer String?
+  explanation        String
+  expected_output    String?
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model questions {
+  id                 String    @id
+  tier               String
+  topic              String
+  type               String
+  question           String
+  answer             String
+  alternative_answer String?
+  explanation        String
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  expected_output    String?
+  language           String    @default("python")
+
+  @@index([language])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sql_questions {
+  id                 String    @id
+  tier               String
+  topic              String
+  type               String
+  question           String
+  answer             String
+  alternative_answer String?
+  explanation        String
+  expected_output    String?
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+enum Role {
+  LEARNER
+  ADMIN
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  ATTEMPTED
+  SOLVED
+  SKIPPED
+}
+
+/// One row per registered user; id mirrors the Supabase Auth user id.
+model Profile {
+  id            String     @id @db.Uuid
+  email         String     @unique
+  handle        String     @unique
+  name          String?
+  role          Role       @default(LEARNER)
+  points        Int        @default(0)
+  currentStreak Int        @default(0) @map("current_streak")
+  bestStreak    Int        @default(0) @map("best_streak")
+  lastSolvedOn  DateTime?  @map("last_solved_on") @db.Date
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  attempts      Attempt[]
+  progress      Progress[]
+
+  @@map("profiles")
+}
+
+/// Every submitted answer, including anonymous/guest submissions (userId null).
+model Attempt {
+  id         BigInt   @id @default(autoincrement())
+  userId     String?  @map("user_id") @db.Uuid
+  questionId String   @map("question_id")
+  language   String
+  correct    Boolean
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       Profile? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([questionId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("attempts")
+}
+
+/// Server-side per-user question progress (replaces localStorage for signed-in users).
+model Progress {
+  userId     String         @map("user_id") @db.Uuid
+  questionId String         @map("question_id")
+  language   String
+  status     ProgressStatus @default(NOT_STARTED)
+  attempts   Int            @default(0)
+  solvedAt   DateTime?      @map("solved_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+  user       Profile        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, questionId])
+  @@index([userId, language])
+  @@map("question_progress")
+}

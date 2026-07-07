@@ -18,3 +18,20 @@ export const TIER_LABELS: Record<string, string> = {
 };
 
 export const TIER_ORDER = ['simple', 'intermediate', 'hard', 'expert'] as const;
+
+/** Short question-type labels used on badges (design spec). */
+export const TYPE_SHORT_LABELS: Record<string, string> = {
+  write_the_code: 'write the code',
+  fill_in_the_blank: 'fill the blank',
+  output_prediction: 'predict output',
+  what_is_the_result: 'predict output',
+  spot_the_bug: 'spot the bug',
+};
+
+/** Tier accent color CSS variables (design: green/blue/copper/red ladder). */
+export const TIER_COLOR_VAR: Record<string, string> = {
+  simple: 'var(--green)',
+  intermediate: 'var(--blue)',
+  hard: 'var(--copper)',
+  expert: 'var(--red)',
+};

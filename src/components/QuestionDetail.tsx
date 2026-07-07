@@ -1,18 +1,11 @@
 'use client';
 
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn, formatTopic } from '@/lib/utils';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { TIER_LABELS } from '@/lib/config';
+import { TYPE_SHORT_LABELS } from '@/lib/config';
+import { parseSqlQuestion } from '@/lib/sql/parse';
 import type { Question } from '@/lib/types';
-
-const TYPE_LABELS: Record<string, string> = {
-  write_the_code: 'Write the code',
-  fill_in_the_blank: 'Fill in the blank',
-  output_prediction: 'What will it print?',
-  spot_the_bug: 'Spot the bug',
-  what_is_the_result: 'What is the result?',
-};
 
 interface Props {
   question: Question | null;
@@ -20,11 +13,30 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function QuestionDetail({ question, open, onOpenChange }: Props) {
+/**
+ * For fill_in_the_blank the code template is pre-loaded into the editor
+ * (see HomeClient's savedCode), so the prompt shows only the prose part.
+ */
+function promptText(question: Question): { text: string; blanksInEditor: boolean } {
+  if (question.type !== 'fill_in_the_blank') {
+    return { text: question.question, blanksInEditor: false };
+  }
+  if (question.language === 'sql') {
+    const { promptBefore, templateAfter } = parseSqlQuestion(question.question);
+    if (templateAfter) return { text: promptBefore, blanksInEditor: true };
+    return { text: question.question, blanksInEditor: false };
+  }
+  const sepIdx = question.question.indexOf('\n\n');
+  if (sepIdx !== -1) {
+    return { text: question.question.slice(0, sepIdx).trim(), blanksInEditor: true };
+  }
+  return { text: question.question, blanksInEditor: false };
+}
 
+export default function QuestionDetail({ question, open, onOpenChange }: Props) {
   if (!question) {
     return (
-      <div className="px-4 py-3 border-b border-border text-sm text-muted-foreground">
+      <div className="border-b border-line bg-surface px-4 py-3 text-sm text-ink-2">
         Select a question to begin.
       </div>
     );
@@ -32,35 +44,40 @@ export default function QuestionDetail({ question, open, onOpenChange }: Props) 
 
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
-      <div className="border-b border-border bg-card">
-        <CollapsibleTrigger className="w-full flex items-start justify-between gap-2 px-4 py-3 text-left hover:bg-muted/30 transition-colors">
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-mono text-xs text-muted-foreground">{question.id}</span>
-              <span className="text-[10px] bg-muted text-muted-foreground rounded px-1.5 py-0.5">
-                {TIER_LABELS[question.tier]}
+      <div className="border-b border-line bg-surface">
+        <CollapsibleTrigger className="flex w-full items-start justify-between gap-2 px-4 py-3 text-left hover:bg-surface-2/60">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-lg bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold text-ink-2">
+                {TYPE_SHORT_LABELS[question.type] ?? question.type}
               </span>
-              <span className="text-[10px] bg-muted text-muted-foreground rounded px-1.5 py-0.5">
-                {TYPE_LABELS[question.type] ?? question.type}
-              </span>
-              <span className="text-[10px] bg-muted text-muted-foreground rounded px-1.5 py-0.5">
+              <span className="rounded-lg bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold text-ink-2">
                 {formatTopic(question.topic)}
               </span>
             </div>
-            <p className={cn('text-sm font-medium leading-snug', open ? '' : 'line-clamp-1 text-muted-foreground')}>
-              {question.question.split('\n')[0]}
-            </p>
+            {/* One-line preview only while collapsed — the expanded body below shows the full question */}
+            {!open && (
+              <p className="line-clamp-1 text-sm font-medium leading-snug text-ink-2">
+                {question.question.split('\n')[0]}
+              </p>
+            )}
           </div>
-          <span className="shrink-0 mt-0.5 text-muted-foreground">
-            {open ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          <span className="mt-0.5 shrink-0 text-ink-3">
+            {open ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
           </span>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="px-4 pb-3">
-            <pre className="text-sm whitespace-pre-wrap font-mono text-foreground/90 bg-muted/40 rounded-md p-3 text-xs leading-relaxed">
-              {question.question}
+          <div className="px-4 pb-3.5">
+            <pre className="whitespace-pre-wrap rounded-xl bg-code-bg p-3.5 font-mono text-xs leading-relaxed text-code-ink">
+              {promptText(question).text}
             </pre>
+            {promptText(question).blanksInEditor && (
+              <p className="mt-2 text-[12px] text-ink-3">
+                Fill in the <span className="font-mono text-copper">___</span> blanks directly in
+                the code editor below.
+              </p>
+            )}
           </div>
         </CollapsibleContent>
       </div>

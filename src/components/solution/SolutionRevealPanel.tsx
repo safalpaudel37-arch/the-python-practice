@@ -42,17 +42,12 @@ export default function SolutionRevealPanel({
         ? 'unlocked'
         : 'hidden';
 
+  if (stage === 'hidden' && attemptCount === 0) return null;
+
   return (
-    <div
-      className="border-t border-border bg-background transition-all duration-300 overflow-hidden"
-      style={{ maxHeight: stage === 'hidden' && attemptCount === 0 ? '0' : undefined }}
-    >
-      {stage === 'hidden' && attemptCount > 0 && (
-        <AttemptsCounter attemptCount={attemptCount} />
-      )}
-      {stage === 'unlocked' && (
-        <RevealPrompt onReveal={() => setRevealed(true)} />
-      )}
+    <div className="overflow-hidden border-t border-copper/25 bg-copper-050 transition-all duration-300">
+      {stage === 'hidden' && attemptCount > 0 && <AttemptsCounter attemptCount={attemptCount} />}
+      {stage === 'unlocked' && <RevealPrompt onReveal={() => setRevealed(true)} />}
       {stage === 'revealed' && (
         <SolutionCard
           question={question}

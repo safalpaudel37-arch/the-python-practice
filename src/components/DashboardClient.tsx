@@ -1,262 +1,488 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTheme } from '@/lib/hooks/useTheme';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Check, ChevronDown, CheckCircle2, Moon, Sun, XCircle, Circle } from 'lucide-react';
-import { Toggle } from '@/components/ui/toggle';
-import type { Question, QuestionType, Tier, QuestionStatus } from '@/lib/types';
-import { getAllStatuses } from '@/lib/storage';
-import { TIER_LABELS, TIER_ORDER } from '@/lib/config';
-import ProgressPanel from '@/components/ProgressPanel';
-
-const TYPE_FILTERS: { value: QuestionType; label: string }[] = [
-  { value: 'write_the_code',    label: 'Write the Code' },
-  { value: 'fill_in_the_blank', label: 'Fill in the Blank' },
-  { value: 'output_prediction', label: 'Output Prediction' },
-  { value: 'spot_the_bug',      label: 'Spot the Bug' },
-];
+import { Moon, Sun, Search, Trophy } from 'lucide-react';
+import type { Question, Tier, QuestionStatus } from '@/lib/types';
+import type { CurrentUser } from '@/lib/auth/user';
+import type { QuestionStats } from '@/lib/tracking';
+import { getAllStatuses, getLastSession } from '@/lib/storage';
+import { TIER_LABELS, TIER_ORDER, TIER_COLOR_VAR, TYPE_SHORT_LABELS } from '@/lib/config';
+import { ProgressRing } from '@/components/ui/ProgressRing';
+import { Logo } from '@/components/brand/Logo';
+import { UserMenu } from '@/components/auth/UserMenu';
+import { GuestBanner } from '@/components/auth/GuestBanner';
 
 const LANGUAGES = [
-  { slug: 'python',     label: 'Python'     },
-  { slug: 'javascript', label: 'JavaScript' },
-  { slug: 'sql',        label: 'SQL'        },
-  { slug: 'c',          label: 'C'          },
-  { slug: 'pytorch',    label: 'PyTorch'    },
-  { slug: 'numpy',      label: 'NumPy'      },
+  { slug: 'python', label: '🐍 Python', live: true },
+  { slug: 'javascript', label: 'JavaScript', live: true },
+  { slug: 'sql', label: 'SQL', live: true },
+  { slug: 'c', label: 'C', live: false },
+  { slug: 'pytorch', label: 'PyTorch', live: false },
+  { slug: 'numpy', label: 'NumPy', live: false },
 ];
 
 const SUPPORTED_LANGS = new Set(['python', 'javascript', 'sql']);
+
+const STATUS_FILTERS: { value: QuestionStatus | null; label: string }[] = [
+  { value: null, label: 'All status' },
+  { value: 'not_started', label: 'Not started' },
+  { value: 'attempted', label: 'Attempted' },
+  { value: 'solved', label: 'Solved' },
+];
+
+const STATUS_META: Record<QuestionStatus, { icon: string; cls: string }> = {
+  solved: { icon: '✓', cls: 'text-green bg-green-100' },
+  attempted: { icon: '◐', cls: 'text-copper bg-copper-100' },
+  skipped: { icon: '○', cls: 'text-ink-3 bg-surface-2' },
+  not_started: { icon: '○', cls: 'text-ink-3 bg-surface-2' },
+};
+
+const STATUS_LABEL: Record<QuestionStatus, string> = {
+  solved: 'Solved',
+  attempted: 'Attempted',
+  skipped: 'Skipped',
+  not_started: 'Not started',
+};
 
 interface Props {
   questions: Question[];
   lang?: string;
   dbError?: string;
+  user?: CurrentUser | null;
+  stats?: Record<string, QuestionStats>;
+  serverStatuses?: Record<string, QuestionStatus>;
 }
 
-function StatusBadge({ status }: { status: QuestionStatus }) {
-  if (status === 'solved') {
-    return (
-      <span className="flex items-center gap-1.5 text-xs text-green-500">
-        <CheckCircle2 className="size-[18px] fill-green-500 stroke-[#050925]" strokeWidth={2.5} />
-        Solved
-      </span>
-    );
-  }
-  if (status === 'attempted') {
-    return (
-      <span className="flex items-center gap-1.5 text-xs text-red-400">
-        <XCircle className="size-[18px] fill-red-400 stroke-[#050925]" strokeWidth={2.5} />
-        Attempted
-      </span>
-    );
-  }
-  return (
-    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-      <Circle className="size-[18px] stroke-muted-foreground" strokeWidth={2} />
-      Not started
-    </span>
-  );
+function formatCount(n: number): string {
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
-export default function DashboardClient({ questions, lang = 'python', dbError }: Props) {
+export default function DashboardClient({
+  questions,
+  lang = 'python',
+  dbError,
+  user = null,
+  stats = {},
+  serverStatuses = {},
+}: Props) {
   const router = useRouter();
-  const [activeTier, setActiveTier] = useState<Tier>('simple');
-  const [activeType, setActiveType] = useState<QuestionType | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
   const { isDark, toggle: toggleTheme } = useTheme();
-  const [statuses, setStatuses] = useState<Record<string, QuestionStatus>>({});
-  const filterRef = useRef<HTMLDivElement>(null);
+  const [activeTier, setActiveTier] = useState<Tier>('simple');
+  const [activeTopic, setActiveTopic] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<QuestionStatus | null>(null);
+  const [search, setSearch] = useState('');
+  const [statuses, setStatuses] = useState<Record<string, QuestionStatus>>(serverStatuses);
+  const [resume, setResume] = useState<{ questionId: string; topic?: string } | null>(null);
 
   useEffect(() => {
-    setStatuses(getAllStatuses());
+    // Local progress fills in anything the server doesn't know (guests, older sessions).
+    const local = getAllStatuses();
+    setStatuses((prev) => ({ ...local, ...prev }));
+    const last = getLastSession();
+    if (last?.questionId) {
+      setResume({ questionId: last.questionId });
+    }
+    localStorage.setItem('has_interacted', 'true');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!filterOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
-        setFilterOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [filterOpen]);
+  const langLabel = LANGUAGES.find((l) => l.slug === lang)?.label.replace('🐍 ', '') ?? lang;
 
-  const filteredQuestions = useMemo(
-    () => questions.filter((q) => {
-      if (q.tier !== activeTier) return false;
-      if (activeType && q.type !== activeType) return false;
-      return true;
-    }),
-    [questions, activeTier, activeType]
+  const tierData = useMemo(
+    () =>
+      TIER_ORDER.map((tier) => {
+        const tierQs = questions.filter((q) => q.tier === tier);
+        const solved = tierQs.filter((q) => statuses[q.id] === 'solved').length;
+        return {
+          tier,
+          total: tierQs.length,
+          solved,
+          pct: tierQs.length ? Math.round((solved / tierQs.length) * 100) : 0,
+        };
+      }),
+    [questions, statuses]
   );
 
-  const activeTypeLabel = TYPE_FILTERS.find((f) => f.value === activeType)?.label ?? null;
+  const topics = useMemo(() => {
+    const set = new Set<string>();
+    questions.filter((q) => q.tier === activeTier).forEach((q) => set.add(q.topic));
+    return [...set];
+  }, [questions, activeTier]);
 
-  const handleQuestionClick = (id: string) => {
-    router.push(`/compiler/${id}`);
-  };
+  const filtered = useMemo(
+    () =>
+      questions.filter((q) => {
+        if (q.tier !== activeTier) return false;
+        if (activeTopic && q.topic !== activeTopic) return false;
+        if (statusFilter && (statuses[q.id] ?? 'not_started') !== statusFilter) return false;
+        if (search) {
+          const s = search.toLowerCase();
+          if (!q.question.toLowerCase().includes(s) && !q.id.toLowerCase().includes(s))
+            return false;
+        }
+        return true;
+      }),
+    [questions, activeTier, activeTopic, statusFilter, search, statuses]
+  );
+
+  const totalSolved = questions.filter((q) => statuses[q.id] === 'solved').length;
+  const overallPct = questions.length ? Math.round((totalSolved / questions.length) * 100) : 0;
+  const hasFilters = activeTopic !== null || statusFilter !== null || search !== '';
+  const resumeQuestion = resume ? questions.find((q) => q.id === resume.questionId) : null;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background text-foreground">
+    <div className="pp-screen min-h-[100dvh] bg-background text-foreground">
+      {/* ── Top bar ── */}
+      <header className="sticky top-0 z-40 border-b border-line bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1200px] items-center gap-3 px-4 py-2.5 md:px-7">
+          <Link href="/" className="shrink-0">
+            <Logo />
+          </Link>
 
-        {/* ── Header ─────────────────────────────────────────────── */}
-        <header className="flex items-center justify-between px-3 py-2 border-b border-border bg-background shrink-0">
-          <span className="font-mono font-bold text-sm tracking-widest" style={{ color: '#ae6e15' }}>
-            PYPRACTICE
-          </span>
-          <Toggle
-            pressed={isDark}
-            onPressedChange={toggleTheme}
-            aria-label="Toggle theme"
-            size="sm"
-          >
-            {isDark ? <Moon className="size-4" /> : <Sun className="size-4" />}
-          </Toggle>
-        </header>
-
-        {/* ── Language nav ───────────────────────────────────────── */}
-        <nav className="shrink-0 flex overflow-x-auto scrollbar-none border-b border-border bg-background">
-          {LANGUAGES.map(({ slug, label }) => (
-            <Link
-              key={slug}
-              href={`/${slug}`}
-              className={`shrink-0 px-5 py-2.5 text-sm font-medium transition-colors border-b-2 ${
-                lang === slug
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-accent/40'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* ── Main content ───────────────────────────────────────── */}
-        <main className="flex-1 overflow-hidden p-6 md:p-8 flex flex-col min-h-0">
-          {!SUPPORTED_LANGS.has(lang) || dbError ? (
-            /* ── Unsupported language / DB error ── */
-            <div className="flex-1 flex items-center justify-center">
-              {dbError ? (
-                <div className="text-center space-y-2">
-                  <p className="text-lg font-semibold text-foreground">Database not ready</p>
-                  <p className="text-sm text-muted-foreground">{dbError}</p>
-                </div>
+          <nav className="ml-2 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+            {LANGUAGES.map(({ slug, label, live }) =>
+              live ? (
+                <Link
+                  key={slug}
+                  href={`/${slug}`}
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium ${
+                    lang === slug
+                      ? 'bg-blue-050 font-semibold text-blue'
+                      : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
+                  }`}
+                >
+                  {label}
+                </Link>
               ) : (
-                <div className="text-center space-y-2">
-                  <p className="text-2xl font-bold text-foreground">
-                    {LANGUAGES.find((l) => l.slug === lang)?.label ?? lang} — Coming Soon
-                  </p>
-                  <p className="text-sm text-muted-foreground">We&apos;re working on it.</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* ── Python dashboard ── */
-            <div className="flex-1 flex flex-col min-h-0 rounded-xl border border-border overflow-hidden bg-background">
+                <span
+                  key={slug}
+                  className="shrink-0 rounded-full px-3 py-1.5 text-[13px] text-ink-3"
+                >
+                  {label} · soon
+                </span>
+              )
+            )}
+          </nav>
 
-              {/* Tier filter row */}
-              <div className="shrink-0 flex items-center justify-between gap-4 px-5 py-3.5 bg-card border-b border-border">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {TIER_ORDER.map((tier) => (
+          <Link
+            href="/leaderboard"
+            className="hidden shrink-0 items-center gap-1.5 text-[13px] font-semibold text-ink-2 hover:text-blue sm:flex"
+          >
+            <Trophy className="size-4" />
+            Leaderboard
+          </Link>
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="grid size-8 shrink-0 place-items-center rounded-[9px] border border-line bg-surface text-ink-2 hover:text-ink"
+          >
+            {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </button>
+          <UserMenu user={user} />
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-[1200px] px-4 pb-24 md:px-7">
+        {!SUPPORTED_LANGS.has(lang) || dbError ? (
+          <div className="flex min-h-[60vh] items-center justify-center">
+            {dbError ? (
+              <div className="space-y-2 text-center">
+                <p className="font-heading text-lg font-semibold">Database not ready</p>
+                <p className="text-sm text-ink-2">{dbError}</p>
+              </div>
+            ) : (
+              <div className="space-y-2 text-center">
+                <p className="font-heading text-2xl font-bold">
+                  {LANGUAGES.find((l) => l.slug === lang)?.label ?? lang} — Coming soon
+                </p>
+                <p className="text-sm text-ink-2">We&apos;re working on it.</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {!user && (
+              <div className="mt-4">
+                <GuestBanner />
+              </div>
+            )}
+
+            {/* ── Heading ── */}
+            <div className="mt-7 mb-5">
+              <h1 className="font-heading text-[26px] font-bold tracking-[-0.01em]">
+                Your {langLabel} journey
+              </h1>
+              <p className="mt-1 text-[14px] text-ink-2">
+                {totalSolved} of {questions.length} solved · pick a tier and keep climbing.
+              </p>
+            </div>
+
+            {/* ── Tier cards ── */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {tierData.map(({ tier, total, solved, pct }) => {
+                const selected = activeTier === tier;
+                const color = TIER_COLOR_VAR[tier];
+                return (
+                  <button
+                    key={tier}
+                    onClick={() => {
+                      setActiveTier(tier);
+                      setActiveTopic(null);
+                    }}
+                    className="flex items-center gap-3 rounded-2xl border bg-surface p-3.5 text-left hover:-translate-y-0.5"
+                    style={{
+                      borderColor: selected ? color : 'var(--line)',
+                      borderWidth: 1.5,
+                      boxShadow: selected ? 'var(--shadow)' : 'var(--shadow-sm)',
+                    }}
+                  >
+                    <ProgressRing size={44} stroke={5} pct={pct} color={color} />
+                    <span className="min-w-0">
+                      <span
+                        className="block truncate font-heading text-[15px] font-bold"
+                        style={{ color: selected ? color : 'var(--ink)' }}
+                      >
+                        {TIER_LABELS[tier]}
+                      </span>
+                      <span className="font-mono text-[11px] text-ink-3">
+                        {solved} / {total} solved
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* ── Main grid ── */}
+            <div className="mt-5 grid gap-5 lg:grid-cols-[1.6fr_1fr]">
+              {/* Left: filters + question list */}
+              <div className="min-w-0">
+                {/* Filter bar */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex min-w-44 flex-1 items-center gap-2 rounded-[10px] border-[1.5px] border-line-2 bg-surface px-3 py-2 text-[13px] focus-within:border-copper focus-within:shadow-[0_0_0_3px_var(--copper-050)]">
+                    <Search className="size-4 shrink-0 text-ink-3" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search questions…"
+                      className="w-full bg-transparent outline-none placeholder:text-ink-3"
+                    />
+                  </label>
+                  {STATUS_FILTERS.map(({ value, label }) => (
                     <button
-                      key={tier}
-                      onClick={() => { setActiveTier(tier); setActiveType(null); }}
-                      className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                        activeTier === tier
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-background text-muted-foreground border border-border hover:text-foreground hover:border-foreground/20'
+                      key={label}
+                      onClick={() => setStatusFilter(value)}
+                      className={`shrink-0 rounded-full border-[1.5px] px-3 py-1.5 text-[12.5px] font-medium ${
+                        statusFilter === value
+                          ? 'border-blue bg-blue-050 text-blue'
+                          : 'border-line-2 text-ink-2 hover:border-blue/50'
                       }`}
                     >
-                      {TIER_LABELS[tier]}
+                      {label}
                     </button>
                   ))}
                 </div>
 
-                {/* Filter dropdown */}
-                <div ref={filterRef} className="relative shrink-0">
+                {/* Topic chips */}
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => setFilterOpen((o) => !o)}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 text-sm border rounded transition-colors ${
-                      activeType
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'text-muted-foreground bg-background border-border hover:text-foreground hover:border-foreground/20'
+                    onClick={() => setActiveTopic(null)}
+                    className={`rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-medium ${
+                      activeTopic === null
+                        ? 'border-blue bg-blue-050 text-blue'
+                        : 'border-line-2 text-ink-2 hover:border-blue/50'
                     }`}
                   >
-                    {activeTypeLabel ?? 'Filter'}
-                    <ChevronDown className={`size-4 transition-transform ${filterOpen ? 'rotate-180' : ''}`} />
+                    All
                   </button>
-
-                  {filterOpen && (
-                    <div className="absolute right-0 top-full mt-1.5 w-52 bg-card border border-border rounded shadow-lg overflow-hidden z-20">
-                      <button
-                        onClick={() => { setActiveType(null); setFilterOpen(false); }}
-                        className={`flex items-center justify-between w-full px-4 py-2.5 text-sm text-left transition-colors ${
-                          activeType === null
-                            ? 'bg-accent text-primary'
-                            : 'text-foreground hover:bg-accent/50'
-                        }`}
-                      >
-                        All types
-                        {activeType === null && <Check className="size-3.5" />}
-                      </button>
-                      <div className="h-px bg-border" />
-                      {TYPE_FILTERS.map((f) => (
-                        <button
-                          key={f.value}
-                          onClick={() => { setActiveType(f.value); setFilterOpen(false); }}
-                          className={`flex items-center justify-between w-full px-4 py-2.5 text-sm text-left transition-colors ${
-                            activeType === f.value
-                              ? 'bg-accent text-primary'
-                              : 'text-foreground hover:bg-accent/50'
-                          }`}
-                        >
-                          {f.label}
-                          {activeType === f.value && <Check className="size-3.5" />}
-                        </button>
-                      ))}
-                    </div>
+                  {topics.map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setActiveTopic(t === activeTopic ? null : t)}
+                      className={`rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-medium ${
+                        activeTopic === t
+                          ? 'border-blue bg-blue-050 text-blue'
+                          : 'border-line-2 text-ink-2 hover:border-blue/50'
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                  {hasFilters && (
+                    <button
+                      onClick={() => {
+                        setActiveTopic(null);
+                        setStatusFilter(null);
+                        setSearch('');
+                      }}
+                      className="text-[12.5px] font-semibold text-copper hover:text-copper-600"
+                    >
+                      Clear all ✕
+                    </button>
                   )}
                 </div>
-              </div>
 
-              {/* Two-column area: question list + side panel */}
-              <div className="flex flex-1 overflow-hidden min-h-0">
-                {/* Question list */}
-                <div className="flex-[3] overflow-y-auto px-5 pt-5 pb-8 space-y-2 min-w-0">
-                  {filteredQuestions.map((q) => {
+                {/* Question cards */}
+                <div className="mt-4 flex flex-col gap-[11px]">
+                  {filtered.map((q) => {
                     const status = statuses[q.id] ?? 'not_started';
+                    const meta = STATUS_META[status];
+                    const st = stats[q.id];
                     return (
                       <button
                         key={q.id}
-                        onClick={() => handleQuestionClick(q.id)}
-                        className="w-full text-left bg-card border border-border rounded-lg px-4 py-3.5 hover:border-primary/40 hover:bg-accent/30 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/compiler/${q.id}`)}
+                        className="group rounded-[14px] border border-line bg-surface p-4 text-left shadow-[var(--shadow-sm)] hover:-translate-y-[3px] hover:border-blue hover:shadow-[var(--shadow)]"
                       >
-                        <p className="text-sm text-foreground leading-snug line-clamp-2 mb-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-[12px] font-semibold text-blue">
+                            {q.id}
+                          </span>
+                          <span className="rounded-lg bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold text-ink-2">
+                            {TYPE_SHORT_LABELS[q.type] ?? q.type}
+                          </span>
+                          <span className="rounded-lg bg-surface-2 px-2 py-0.5 text-[10.5px] font-semibold text-ink-2">
+                            {q.topic}
+                          </span>
+                          <span
+                            className={`ml-auto flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10.5px] font-semibold ${meta.cls}`}
+                          >
+                            {meta.icon} {STATUS_LABEL[status]}
+                          </span>
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-[14.5px] font-medium leading-snug">
                           {q.question}
                         </p>
-                        <StatusBadge status={status} />
+                        {st && st.attempts > 0 && (
+                          <p className="mt-2 font-mono text-[11px] text-ink-3">
+                            {st.solveRate}% solve rate · {formatCount(st.attempts)} attempts
+                          </p>
+                        )}
                       </button>
                     );
                   })}
 
-                  {filteredQuestions.length === 0 && (
-                    <div className="text-center py-12 text-muted-foreground text-sm">
-                      No {activeTypeLabel ? `"${activeTypeLabel}"` : ''} questions found for this tier.
+                  {filtered.length === 0 && (
+                    <div className="rounded-2xl border-2 border-dashed border-line-2 py-12 text-center">
+                      <p className="text-[32px]">🔍</p>
+                      <p className="mt-2 font-heading text-[17px] font-bold">No questions match</p>
+                      <p className="mt-1 text-[13px] text-ink-2">
+                        Try clearing your filters to see everything.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setActiveTopic(null);
+                          setStatusFilter(null);
+                          setSearch('');
+                        }}
+                        className="mt-4 rounded-[9px] bg-blue px-4 py-2 text-[13px] font-semibold text-on-blue hover:bg-blue-600"
+                      >
+                        Clear filters
+                      </button>
                     </div>
                   )}
                 </div>
-
-                {/* Progress panel */}
-                <div className="flex-[2] m-4 ml-0 rounded-lg bg-card hidden md:flex flex-col border border-border overflow-hidden">
-                  <ProgressPanel questions={questions} statuses={statuses} />
-                </div>
               </div>
+
+              {/* Right rail */}
+              <aside className="hidden lg:block">
+                <div className="sticky top-20 flex flex-col gap-3.5">
+                  {/* Overall progress */}
+                  <div className="rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-sm)]">
+                    <p className="font-mono text-[11px] uppercase tracking-[.12em] text-ink-3">
+                      Overall progress
+                    </p>
+                    <div className="mt-4 grid place-items-center">
+                      <ProgressRing size={128} stroke={12} pct={overallPct} color="var(--blue)">
+                        <span className="text-center">
+                          <span className="block font-mono text-[26px] font-bold leading-none">
+                            {totalSolved}
+                          </span>
+                          <span className="font-mono text-[12px] text-ink-3">
+                            / {questions.length}
+                          </span>
+                        </span>
+                      </ProgressRing>
+                    </div>
+                    <p className="mt-3 text-center text-[12.5px] text-ink-3">
+                      {overallPct}% complete
+                    </p>
+                  </div>
+
+                  {/* Streak */}
+                  {user && (
+                    <div className="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-sm)]">
+                      <span className="font-heading text-[30px] font-bold text-copper">
+                        🔥{user.currentStreak}
+                      </span>
+                      <span>
+                        <span className="block text-[14px] font-semibold">day streak</span>
+                        <span className="text-[12px] text-ink-3">
+                          Best: {user.bestStreak} days
+                        </span>
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Solved by tier */}
+                  <div className="rounded-2xl border border-line bg-surface p-5 shadow-[var(--shadow-sm)]">
+                    <p className="font-mono text-[11px] uppercase tracking-[.12em] text-ink-3">
+                      Solved by tier
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3.5">
+                      {tierData.map(({ tier, total, solved, pct }) => (
+                        <div key={tier}>
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <span
+                              className="text-[12.5px] font-semibold"
+                              style={{ color: TIER_COLOR_VAR[tier] }}
+                            >
+                              {TIER_LABELS[tier]}
+                            </span>
+                            <span className="font-mono text-[11px] text-ink-3">
+                              {solved}/{total}
+                            </span>
+                          </div>
+                          <div className="h-[7px] overflow-hidden rounded bg-surface-2">
+                            <div
+                              className="h-full origin-left rounded animate-[pp-bar_1s_ease_both]"
+                              style={{
+                                width: `${pct}%`,
+                                backgroundColor: TIER_COLOR_VAR[tier],
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Resume last */}
+                  {resumeQuestion && (
+                    <Link
+                      href={`/compiler/${resumeQuestion.id}`}
+                      className="block rounded-2xl border border-copper/35 bg-copper-050 p-5 hover:-translate-y-0.5 hover:shadow-[var(--shadow)]"
+                    >
+                      <p className="font-mono text-[11px] uppercase tracking-[.12em] text-copper">
+                        Resume last
+                      </p>
+                      <p className="mt-2 truncate text-[14px] font-semibold">
+                        {resumeQuestion.id} · {resumeQuestion.topic}
+                      </p>
+                      <span className="mt-3 block rounded-[9px] bg-copper py-2 text-center text-[13px] font-semibold text-white">
+                        Continue →
+                      </span>
+                    </Link>
+                  )}
+                </div>
+              </aside>
             </div>
-          )}
-        </main>
+          </>
+        )}
+      </main>
     </div>
   );
 }

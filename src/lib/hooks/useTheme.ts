@@ -13,13 +13,14 @@ function applyTheme(dark: boolean) {
 }
 
 export function useTheme() {
-  // Default true matches the `dark` class we add to <html> server-side,
-  // so there's no hydration mismatch.
-  const [isDark, setIsDark] = useState(true);
+  // Default false matches the light <html> rendered server-side,
+  // so there's no hydration mismatch. The inline script in layout.tsx
+  // applies a stored dark preference before first paint.
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    const dark = stored !== 'light'; // default to dark
+    const dark = stored === 'dark'; // light is the default
     setIsDark(dark);
     applyTheme(dark);
   }, []);

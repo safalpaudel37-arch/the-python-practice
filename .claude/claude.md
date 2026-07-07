@@ -7,15 +7,23 @@ You are a senior software developer with 10+ years of programming experience tea
 ## Commands
 
 ```bash
-npm run dev      # Start dev server on localhost:3000
-npm run build    # Production build
-npm run lint     # ESLint check
+npm run dev         # Start dev server on localhost:3000
+npm run build       # Production build
+npm run lint        # ESLint check
+npm run db:migrate  # Prisma: create + apply a migration (dev)
+npm run db:deploy   # Prisma: apply pending migrations (prod)
+npm run db:generate # Prisma: regenerate client into src/generated/prisma (gitignored)
 ```
 
 Required `.env.local` variables:
 ```
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
+# Prisma — use the Supavisor SESSION pooler URL (port 5432); the direct
+# db.<ref>.supabase.co host is IPv6-only and unreachable from most networks:
+DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-<region>.pooler.supabase.com:5432/postgres
+# Comma-separated emails granted the ADMIN role on first sign-in:
+ADMIN_EMAILS=
 # Dev-only (admin bulk insert endpoint):
 SUPABASE_SERVICE_ROLE_KEY=
 ADMIN_SECRET=
@@ -29,7 +37,9 @@ Python execution requires `SharedArrayBuffer` (cross-origin isolation). Chrome a
 
 ## Architecture
 
-**Stack**: Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, CodeMirror 6, Supabase, Pyodide (WASM Python in a Web Worker).
+**Stack**: Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4, CodeMirror 6, Supabase (questions + auth), Prisma 7 (profiles/attempts/progress tables), Pyodide (WASM Python in a Web Worker).
+
+**Design system**: cream/blue/copper tokens defined in `globals.css` (`--bg/--surface/--ink/--blue/--copper/...`), exposed as Tailwind utilities (`bg-surface`, `text-ink-2`, `bg-copper-050`, ...). Fonts: Figtree (body), Space Grotesk (`font-heading`), JetBrains Mono (`font-mono`). Light theme is default; `.dark` uses a navy palette. Code surfaces are always dark navy (`--code-bg`). NOTE: `/src/app/admin` is gitignored, and Tailwind skips gitignored files — `globals.css` has an explicit `@source "./admin"` to compensate.
 
 ### Routes
 
@@ -41,12 +51,19 @@ Python execution requires `SharedArrayBuffer` (cross-origin isolation). Chrome a
 | `/compiler` | Client | Standalone editor (no question) |
 | `POST /api/check-answer` | API | Rate-limited (30 req/min); calls Supabase RPC `check_answer(question_id, user_answer)` |
 | `POST /api/admin/add-questions` | API | Dev-only bulk upsert; disabled in production by `NODE_ENV` check |
+| `POST /api/attempts` | API | Records client-checked attempts (SQL/JS `write_the_code`); rate-limited |
+| `/login` | Server → Client | Learner login/signup (Supabase Auth, email+password) + "continue as guest" |
+| `/leaderboard` | Server | Rankings from Prisma aggregates; `?lang=` and `?time=` filters |
+| `/profile` | Server | Signed-in user stats: cards, solved-by-tier, activity heatmap |
+| `/admin`, `/admin/questions` | Server → Client | Admin analytics + question CRUD (role-gated; dir is gitignored/local-only) |
+| `/admin/login` | Server → Client | Admin sign-in (rejects non-ADMIN accounts) |
+| `POST/PUT/DELETE /api/admin/questions` | API | Question CRUD via Prisma; requires session with ADMIN role |
 
 ### Data flow
 
 1. `[lang]/page.tsx` (server) calls `getQuestions()` → Supabase `questions` table → passes array to `DashboardClient`
 2. `DashboardClient` / `HomeClient` hold all UI state (selected question, statuses, attempt counts)
-3. User progress lives entirely in `localStorage` via `src/lib/storage.ts` — keys: `qstatus:<id>`, `qattempts:<id>`, `qcode:<id>`, `session:last`
+3. Guest progress lives in `localStorage` via `src/lib/storage.ts` — keys: `qstatus:<id>`, `qattempts:<id>`, `qcode:<id>`, `session:last`. Signed-in users additionally get server-side tracking: every submit records an `attempts` row and upserts `question_progress` (Prisma, `src/lib/tracking.ts`); first solves award +10 points and advance the daily streak on `profiles`.
 4. `Compiler` renders a split editor + output panel and communicates with Pyodide via `WorkerBridge`
 5. On submit, the client POSTs to `/api/check-answer`; the server calls Supabase RPC and returns `{ correct: boolean }`
 
@@ -69,6 +86,12 @@ Defined in `src/lib/types.ts`. Answer checking differs per type (see `Compiler.t
 | `spot_the_bug` | No auto-check (`AUTO_CHECK_TYPES` excludes it) |
 
 Question ordering rule: `write_the_code` questions must be listed before `fill_in_the_blank` and `output_prediction` within any tier/topic group.
+
+### Auth & Prisma
+
+- Supabase Auth (email+password) via `@supabase/ssr`; session cookies refreshed in `src/proxy.ts`. Server actions in `src/lib/auth/actions.ts`; `getCurrentUser()` (`src/lib/auth/user.ts`) lazily creates a `profiles` row and grants ADMIN when the email is in `ADMIN_EMAILS`.
+- Prisma 7 (`prisma/schema.prisma`, config in `prisma.config.ts` which loads `.env.local`): models `Profile`, `Attempt`, `Progress` plus introspected `questions`/`javascript_questions`/`sql_questions`. The pre-existing tables were baselined in `prisma/migrations/0_baseline` — never let `migrate dev` reset the schema. New tracking tables have RLS enabled with no policies (Prisma connects as owner; PostgREST cannot touch them).
+- Client singleton: `src/lib/prisma.ts` (pg driver adapter → Supavisor session pooler).
 
 ### Supabase clients
 

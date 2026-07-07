@@ -9,7 +9,7 @@ interface Props {
 }
 
 const ANIMATION_MS = 1500;
-const COLOR = { success: '#22c55e', error: '#ef4444' } as const;
+const COLOR = { success: '#1F9D57', error: '#C0453B' } as const;
 
 /**
  * Success / failure overlay. Pure inline SVG + CSS — no video assets, so it

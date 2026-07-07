@@ -2,14 +2,18 @@
 @import "tw-animate-css";
 @import "./shadcn-theme.css";
 
+/* /src/app/admin is gitignored (local-only pages) and Tailwind skips gitignored
+   files when scanning for utilities — force-include it. */
+@source "./admin";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-figtree);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-space-grotesk);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,82 +50,164 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* PyPractice design tokens (cream / blue / copper) */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-blue: var(--blue);
+  --color-blue-600: var(--blue-600);
+  --color-blue-700: var(--blue-700);
+  --color-blue-100: var(--blue-100);
+  --color-blue-050: var(--blue-050);
+  --color-on-blue: var(--on-blue);
+  --color-copper: var(--copper);
+  --color-copper-600: var(--copper-600);
+  --color-copper-100: var(--copper-100);
+  --color-copper-050: var(--copper-050);
+  --color-green: var(--green);
+  --color-green-100: var(--green-100);
+  --color-red: var(--red);
+  --color-red-100: var(--red-100);
+  --color-code-bg: var(--code-bg);
+  --color-code-ink: var(--code-ink);
+  --color-code-line: var(--code-line);
 }
 
 :root {
-  --sky-aqua: #52d9ff;
-  --tropical-teal: #4fbbbb;
-  --prussian-blue: #07162c;
-  --prussian-blue-2: #050925;
-  --coffee-bean: #150811;
-  --copperwood: #ae6e15;
-  --walnut: #633800;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* --- PyPractice palette (light / cream) --- */
+  --bg: #f3eee2;
+  --bg-2: #ede6d6;
+  --surface: #fbf8f1;
+  --surface-2: #f3eee2;
+  --ink: #221f18;
+  --ink-2: #5c564a;
+  --ink-3: #8a8271;
+  --line: #e4dbc8;
+  --line-2: #d7cdb6;
+  --blue: #2d5bff;
+  --blue-600: #1e45d8;
+  --blue-700: #1a38b0;
+  --blue-100: #e3e9ff;
+  --blue-050: #eff3ff;
+  --on-blue: #ffffff;
+  --copper: #ae6e15;
+  --copper-600: #8e5a10;
+  --copper-100: #f5e9d2;
+  --copper-050: #faf2e2;
+  --green: #1f9d57;
+  --green-100: #dbf3e4;
+  --red: #c0453b;
+  --red-100: #f7e1de;
+  --shadow-sm: 0 1px 2px rgba(34, 31, 24, 0.05), 0 1px 3px rgba(34, 31, 24, 0.06);
+  --shadow: 0 4px 10px rgba(34, 31, 24, 0.06), 0 12px 28px rgba(34, 31, 24, 0.07);
+  --shadow-lg: 0 12px 24px rgba(34, 31, 24, 0.09), 0 28px 60px rgba(34, 31, 24, 0.12);
+  --code-bg: #1c2333;
+  --code-ink: #d6deee;
+  --code-line: rgba(255, 255, 255, 0.07);
+
+  /* --- shadcn tokens mapped onto the palette --- */
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--blue);
+  --primary-foreground: var(--on-blue);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--bg-2);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--blue-050);
+  --accent-foreground: var(--blue-700);
+  --destructive: var(--red);
+  --border: var(--line);
+  --input: var(--line-2);
+  --ring: var(--copper);
+  --chart-1: var(--blue);
+  --chart-2: var(--copper);
+  --chart-3: var(--green);
+  --chart-4: var(--blue-600);
+  --chart-5: var(--red);
+  --radius: 0.875rem;
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--blue);
+  --sidebar-primary-foreground: var(--on-blue);
+  --sidebar-accent: var(--blue-050);
+  --sidebar-accent-foreground: var(--blue-700);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--copper);
 }
 
 .dark {
-  --background: #050925;
-  --foreground: #f0f4f8;
-  --card: #07162c;
-  --card-foreground: #f0f4f8;
-  --popover: #07162c;
-  --popover-foreground: #f0f4f8;
-  --primary: #ae6e15;
-  --primary-foreground: #050925;
-  --secondary: #0c1735;
-  --secondary-foreground: #f0f4f8;
-  --muted: #0a1428;
-  --muted-foreground: #5a7a90;
-  --accent: #0d1e3a;
-  --accent-foreground: #f0f4f8;
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: rgba(255, 255, 255, 0.2);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: #07162c;
-  --sidebar-foreground: #f0f4f8;
-  --sidebar-primary: #ae6e15;
-  --sidebar-primary-foreground: #050925;
-  --sidebar-accent: #0c1735;
-  --sidebar-accent-foreground: #f0f4f8;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: rgba(255, 255, 255, 0.2);
+  /* --- PyPractice palette (dark / navy) --- */
+  --bg: #0d1322;
+  --bg-2: #0a0f1b;
+  --surface: #141c30;
+  --surface-2: #1b2440;
+  --ink: #f1ecdf;
+  --ink-2: #aeb6c9;
+  --ink-3: #79839b;
+  --line: #26314c;
+  --line-2: #324063;
+  --blue: #5c82ff;
+  --blue-600: #4e7bff;
+  --blue-700: #3d66e8;
+  --blue-100: #1d2848;
+  --blue-050: #18213c;
+  --on-blue: #ffffff;
+  --copper: #e0912e;
+  --copper-600: #c97e22;
+  --copper-100: #3a2c13;
+  --copper-050: #241a0c;
+  --green: #3fbe75;
+  --green-100: #12331f;
+  --red: #e4695e;
+  --red-100: #3a1a17;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.55);
+  --code-bg: #0a0f1b;
+  --code-ink: #d6deee;
+  --code-line: rgba(255, 255, 255, 0.06);
+
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--blue);
+  --primary-foreground: var(--on-blue);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--blue-050);
+  --accent-foreground: var(--blue);
+  --destructive: var(--red);
+  --border: var(--line);
+  --input: var(--line-2);
+  --ring: var(--copper);
+  --chart-1: var(--blue);
+  --chart-2: var(--copper);
+  --chart-3: var(--green);
+  --chart-4: var(--blue-600);
+  --chart-5: var(--red);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--blue);
+  --sidebar-primary-foreground: var(--on-blue);
+  --sidebar-accent: var(--blue-050);
+  --sidebar-accent-foreground: var(--blue);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--copper);
 }
 
 @layer base {
@@ -134,42 +220,145 @@
   html {
     @apply font-sans;
   }
+  ::selection {
+    background: rgba(174, 110, 21, 0.25);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading), var(--font-figtree), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 
+/* ---------- Motion (design spec) ---------- */
+@keyframes pp-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pp-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes pp-pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  60% { transform: scale(1.04); }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes pp-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(174, 110, 21, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(174, 110, 21, 0); }
+}
+@keyframes pp-blink {
+  50% { opacity: 0; }
+}
+@keyframes pp-type {
+  from { width: 0; }
+  to { width: var(--tw, 20ch); }
+}
+@keyframes pp-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes pp-bar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes pp-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+@keyframes pp-skel {
+  to { background-position: -200% 0; }
+}
+@keyframes pp-slideup {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+.pp-screen {
+  animation: pp-fade 0.4s ease both;
+}
+.pp-skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--line-2) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: pp-skel 1.3s linear infinite;
+}
+.pp-shake {
+  animation: pp-shake 0.5s ease both;
+}
+
+/* Smooth interactive transitions everywhere (design: "smoothness is a priority") */
+button,
+a,
+.pp-int {
+  transition:
+    transform 0.18s cubic-bezier(0.2, 0.7, 0.3, 1),
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.2s ease,
+    opacity 0.18s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- CodeMirror: code surfaces stay dark navy in both themes ---------- */
 .cm-editor {
   height: 100%;
-  color: var(--foreground);
-  background-color: var(--background);
+  color: var(--code-ink);
+  background-color: var(--code-bg);
+  font-family: var(--font-jetbrains-mono), monospace;
 }
 
 .cm-editor .cm-scroller {
   overflow: auto;
+  font-family: var(--font-jetbrains-mono), monospace;
+  line-height: 1.9;
 }
 
 .cm-editor .cm-gutters {
-  background-color: color-mix(in oklab, var(--background) 92%, var(--foreground));
-  color: var(--muted-foreground);
-  border-right: 1px solid var(--border);
+  background-color: var(--code-bg);
+  color: rgba(255, 255, 255, 0.28);
+  border-right: 1px solid var(--code-line);
 }
 
 .cm-editor .cm-activeLine,
 .cm-editor .cm-activeLineGutter {
-  background-color: color-mix(in oklab, var(--accent) 32%, transparent);
+  background-color: rgba(255, 255, 255, 0.04);
 }
 
 .cm-editor .cm-cursor,
 .cm-editor .cm-dropCursor {
-  border-left-color: var(--foreground);
+  border-left-color: var(--copper);
 }
 
 .cm-editor .cm-selectionBackground,
 .cm-editor .cm-content ::selection {
-  background-color: color-mix(in oklab, var(--primary) 30%, transparent) !important;
+  background-color: rgba(92, 130, 255, 0.25) !important;
 }
 
 .cm-editor .cm-tooltip,
 .cm-editor .cm-panel {
-  background-color: var(--card);
-  color: var(--card-foreground);
-  border-color: var(--border);
+  background-color: var(--code-bg);
+  color: var(--code-ink);
+  border-color: var(--code-line);
 }

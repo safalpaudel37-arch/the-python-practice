@@ -1,6 +1,4 @@
 import { CheckCircle2, RotateCcw, ArrowRight } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import type { Question } from '@/lib/types';
 import { AUTO_CHECK_TYPES } from '@/lib/config';
 
@@ -20,63 +18,61 @@ export default function SolutionCard({
   const isCodeAnswer = !AUTO_CHECK_TYPES.has(question.type);
 
   return (
-    <div className="px-4 py-2">
-      <Card className="gap-0">
-        <CardHeader className="border-b pb-3">
-          <CardTitle className="flex items-center gap-2 text-green-600 dark:text-green-400">
-            <CheckCircle2 className="size-4" />
-            Solution
-          </CardTitle>
-        </CardHeader>
+    <div className="px-4 py-3.5 animate-[pp-slideup_.3s_ease_both]">
+      <p className="mb-3 font-mono text-[11px] font-semibold uppercase tracking-[.12em] text-copper">
+        Solution
+      </p>
 
-        <CardContent className="pt-3 flex flex-col gap-3">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1.5 font-medium">
-              {isCodeAnswer ? 'Answer (code)' : 'Expected output'}
-            </p>
-            <pre className="text-xs font-mono bg-zinc-900 dark:bg-zinc-950 text-green-400 rounded-md p-3 overflow-x-auto whitespace-pre-wrap leading-relaxed">
-              {question.answer}
-              {question.alternative_answer && (
-                <>
-                  {'\n\n'}
-                  <span className="text-zinc-500"># Alternative solution:</span>
-                  {'\n'}
-                  {question.alternative_answer}
-                </>
-              )}
-            </pre>
-          </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Answer code card */}
+        <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-xl bg-code-bg p-4 font-mono text-xs leading-relaxed text-[#c3e88d]">
+          {question.answer}
+          {question.alternative_answer && (
+            <>
+              {'\n\n'}
+              <span className="text-white/40"># Alternative solution:</span>
+              {'\n'}
+              {question.alternative_answer}
+            </>
+          )}
+        </pre>
 
+        {/* Explanation + actions */}
+        <div className="flex flex-col">
           {question.explanation && (
-            <div>
-              <p className="text-xs text-muted-foreground mb-1 font-medium">Why this works</p>
-              <p className="text-xs text-foreground/80 leading-relaxed">{question.explanation}</p>
-            </div>
+            <p className="flex-1 text-[13.5px] leading-relaxed text-ink-2">
+              {question.explanation}
+            </p>
           )}
-        </CardContent>
-
-        <CardFooter className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={onTryAgain} className="gap-1.5">
-            <RotateCcw className="size-3" />
-            Try Again
-          </Button>
-          {isCodeAnswer && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMarkSolved}
-              className="gap-1.5 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <button
+              onClick={onTryAgain}
+              className="flex items-center justify-center gap-1.5 rounded-[9px] border-[1.5px] border-line-2 px-2 py-2 text-[13px] font-semibold text-ink-2 hover:border-blue hover:text-blue"
             >
-              <CheckCircle2 className="size-3" />
-              Mark as Solved
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" onClick={onNextQuestion} className="gap-1.5 ml-auto">
-            Next Question
-            <ArrowRight className="size-3" />
-          </Button>
-        </CardFooter>
-      </Card>
+              <RotateCcw className="size-3.5" />
+              Try again
+            </button>
+            {isCodeAnswer ? (
+              <button
+                onClick={onMarkSolved}
+                className="flex items-center justify-center gap-1.5 rounded-[9px] bg-green px-2 py-2 text-[13px] font-semibold text-white hover:opacity-90"
+              >
+                <CheckCircle2 className="size-3.5" />
+                Mark solved
+              </button>
+            ) : (
+              <span />
+            )}
+            <button
+              onClick={onNextQuestion}
+              className="flex items-center justify-center gap-1.5 rounded-[9px] bg-blue px-2 py-2 text-[13px] font-semibold text-on-blue hover:bg-blue-600"
+            >
+              Next
+              <ArrowRight className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

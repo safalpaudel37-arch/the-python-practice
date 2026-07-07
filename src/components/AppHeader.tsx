@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { ArrowLeft, Keyboard, Menu, Moon, Play, SendHorizonal, Sun } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Toggle } from '@/components/ui/toggle';
 import { cn } from '@/lib/utils';
 import { Spinner } from '@/components/ui/spinner';
 import HintButton from '@/components/solution/HintButton';
+import { Logo } from '@/components/brand/Logo';
+import { UserMenu } from '@/components/auth/UserMenu';
+import { TIER_LABELS } from '@/lib/config';
 import type { Question, QuestionStatus } from '@/lib/types';
+import type { CurrentUser } from '@/lib/auth/user';
 import type { WrongAttemptContext } from '@/components/Compiler';
 
 interface HintProps {
@@ -29,6 +31,8 @@ interface Props {
   showBackButton?: boolean;
   hideRun?: boolean;
   hintProps?: HintProps;
+  question?: Question | null;
+  user?: CurrentUser | null;
 }
 
 export default function AppHeader({
@@ -45,113 +49,111 @@ export default function AppHeader({
   showBackButton = false,
   hideRun = false,
   hintProps,
+  question,
+  user = null,
 }: Props) {
   const totalSolved = Object.values(statuses).filter((s) => s === 'solved').length;
+  const backHref = `/${question?.language ?? 'python'}`;
 
   return (
-    <header className="flex items-center justify-between px-3 py-2 border-b border-border bg-background shrink-0">
-      {/* Left: back button (compiler view) or mobile menu + logo */}
-      <div className="flex items-center gap-2">
+    <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2">
+      {/* Left: back / mobile menu + brand + context badge */}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         {showBackButton ? (
           <Link
-            href="/"
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            href={backHref}
+            aria-label="Back to dashboard"
+            className="grid size-[30px] shrink-0 place-items-center rounded-lg border border-line bg-surface text-ink-2 hover:border-blue hover:text-blue"
           >
             <ArrowLeft className="size-4" />
-            <span className="hidden sm:inline">Dashboard</span>
           </Link>
         ) : (
-          <Button
-            variant="ghost"
-            size="icon-sm"
+          <button
             onClick={onMobileMenuOpen}
-            className="lg:hidden h-9 w-9"
+            className="grid size-[30px] shrink-0 place-items-center rounded-lg border border-line text-ink-2 lg:hidden"
             aria-label="Open question browser"
           >
             <Menu className="size-4" />
-          </Button>
+          </button>
         )}
-        <span className="font-mono font-bold text-sm tracking-widest" style={{ color: '#ae6e15' }}>
-          PYPRACTICE
-        </span>
+        <Link href="/" className="hidden shrink-0 sm:block">
+          <Logo />
+        </Link>
+        {question && (
+          <span className="truncate rounded-lg bg-blue-050 px-2.5 py-1 font-mono text-[11.5px] font-semibold text-blue">
+            {question.id} · {TIER_LABELS[question.tier]}
+          </span>
+        )}
         {totalSolved > 0 && (
-          <span className="hidden sm:inline text-xs text-muted-foreground">
+          <span className="hidden font-mono text-[11px] text-ink-3 md:inline">
             {totalSolved} solved
           </span>
         )}
       </div>
 
-      {/* Right: shortcuts help + theme toggle + mobile run button */}
-      <div className="flex items-center gap-1.5">
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onShowShortcuts}
-          className="hidden sm:flex h-9 w-9"
-          aria-label="Keyboard shortcuts"
-        >
-          <Keyboard className="size-4" />
-        </Button>
-
-        <Toggle
-          pressed={isDark}
-          onPressedChange={onToggleTheme}
-          aria-label="Toggle theme"
-          size="sm"
-        >
-          {isDark ? <Moon className="size-4" /> : <Sun className="size-4" />}
-        </Toggle>
-
-        {/* Run + Submit buttons — only on mobile/tablet (desktop has CompilerToolbar) */}
+      {/* Right: run/submit (mobile), hint, shortcuts, theme, avatar */}
+      <div className="flex shrink-0 items-center gap-1.5">
         {!hideRun && (
-          <Button
+          <button
             onClick={onRun}
             disabled={isLoading || isRunning}
-            size="sm"
             className={cn(
-              'lg:hidden h-9',
+              'flex h-8 items-center gap-1.5 rounded-[9px] border-[1.5px] px-3 text-[13px] font-semibold lg:hidden',
               isRunning || isLoading
-                ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                : 'bg-primary hover:bg-primary/90 text-primary-foreground'
+                ? 'cursor-not-allowed border-line text-ink-3'
+                : 'border-line-2 text-ink hover:border-blue hover:text-blue'
             )}
           >
             {isRunning ? (
               <>
-                <Spinner className="size-3.5 mr-1" />
-                Running
+                <Spinner className="size-3.5 text-copper" />
+                Running…
               </>
             ) : (
               <>
-                <Play className="size-3.5 mr-1" />
+                <Play className="size-3.5" />
                 Run
               </>
             )}
-          </Button>
+          </button>
         )}
 
-        <Button
+        <button
           onClick={onSubmit}
           disabled={!canSubmit}
-          size="sm"
-          variant="outline"
           className={cn(
-            'lg:hidden h-9',
+            'flex h-8 items-center gap-1.5 rounded-[9px] px-3 text-[13px] font-semibold lg:hidden',
             canSubmit
-              ? 'border-border text-foreground hover:bg-accent'
-              : 'opacity-30 cursor-not-allowed'
+              ? 'bg-blue text-on-blue hover:bg-blue-600'
+              : 'cursor-not-allowed bg-surface-2 text-ink-3'
           )}
         >
-          <SendHorizonal className="size-3.5 mr-1" />
+          <SendHorizonal className="size-3.5" />
           Submit
-        </Button>
+        </button>
 
-        {hintProps && (
-          <div className="lg:hidden">
-            <HintButton question={hintProps.question} wrongContext={hintProps.wrongContext} />
-          </div>
-        )}
+        <div className="lg:hidden">
+          <HintButton question={question ?? undefined} wrongContext={hintProps?.wrongContext} />
+        </div>
+
+        <button
+          onClick={onShowShortcuts}
+          className="hidden size-8 place-items-center rounded-[9px] border border-line bg-surface text-ink-2 hover:text-ink sm:grid"
+          aria-label="Keyboard shortcuts"
+        >
+          <Keyboard className="size-4" />
+        </button>
+
+        <button
+          onClick={onToggleTheme}
+          aria-label="Toggle theme"
+          className="grid size-8 place-items-center rounded-[9px] border border-line bg-surface text-ink-2 hover:text-ink"
+        >
+          {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        </button>
+
+        <UserMenu user={user} />
       </div>
     </header>
   );
 }
-

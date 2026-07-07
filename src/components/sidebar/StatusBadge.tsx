@@ -5,10 +5,10 @@ const STATUS_CONFIG: Record<
   QuestionStatus,
   { icon: string; label: string; className: string }
 > = {
-  not_started: { icon: '○', label: 'Not started', className: 'text-muted-foreground' },
-  attempted: { icon: '◑', label: 'Attempted', className: 'text-amber-500' },
-  solved: { icon: '✓', label: 'Solved', className: 'text-green-500' },
-  skipped: { icon: '→', label: 'Skipped', className: 'text-blue-400' },
+  not_started: { icon: '○', label: 'Not started', className: 'text-ink-3' },
+  attempted: { icon: '◐', label: 'Attempted', className: 'text-copper' },
+  solved: { icon: '✓', label: 'Solved', className: 'text-green' },
+  skipped: { icon: '→', label: 'Skipped', className: 'text-blue' },
 };
 
 interface Props {

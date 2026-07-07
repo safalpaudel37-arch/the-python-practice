@@ -14,6 +14,8 @@ import { useKeyboardShortcuts } from '@/lib/hooks/useKeyboardShortcuts';
 import { useTheme } from '@/lib/hooks/useTheme';
 import type { CompilerHandle, WrongAttemptContext } from '@/components/Compiler';
 import type { Question, QuestionStatus } from '@/lib/types';
+import type { CurrentUser } from '@/lib/auth/user';
+import type { SolveReward } from '@/lib/tracking';
 import { getNextQuestion, getPrevQuestion } from '@/lib/questions';
 import { JS_STARTER_CODE, SQL_STARTER_CODE, STARTER_CODE } from '@/lib/config';
 import { parseSqlQuestion } from '@/lib/sql/parse';
@@ -32,9 +34,10 @@ const Compiler = dynamic(() => import('@/components/Compiler'), { ssr: false });
 interface Props {
   questions: Question[];
   initialQuestionId?: string;
+  user?: CurrentUser | null;
 }
 
-export default function HomeClient({ questions, initialQuestionId }: Props) {
+export default function HomeClient({ questions, initialQuestionId, user = null }: Props) {
   const questionMap = useMemo(
     () => new Map<string, Question>(questions.map((q) => [q.id, q])),
     [questions]
@@ -60,6 +63,7 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
   const [hasRun, setHasRun] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [lastReward, setLastReward] = useState<SolveReward | null>(null);
 
   const compilerRef = useRef<CompilerHandle>(null);
 
@@ -108,12 +112,13 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  const handleAttempt = useCallback((questionId: string, passed: boolean, wrongContext?: WrongAttemptContext) => {
+  const handleAttempt = useCallback((questionId: string, passed: boolean, wrongContext?: WrongAttemptContext, reward?: SolveReward | null) => {
     if (passed) {
       setStatuses((prev) => ({ ...prev, [questionId]: 'solved' }));
       setQuestionStatus(questionId, 'solved');
       setAttemptCounts((prev) => ({ ...prev, [questionId]: 0 }));
       setAttemptCount(questionId, 0);
+      setLastReward(reward ?? null);
       setShowSuccess(true);
     } else {
       setShowError(true);
@@ -190,7 +195,8 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
   );
 
   const handleAttemptForCurrent = useCallback(
-    (passed: boolean, wrongContext?: WrongAttemptContext) => handleAttempt(selectedId, passed, wrongContext),
+    (passed: boolean, wrongContext?: WrongAttemptContext, reward?: SolveReward | null) =>
+      handleAttempt(selectedId, passed, wrongContext, reward),
     [selectedId, handleAttempt]
   );
 
@@ -224,6 +230,8 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
             : hasRun && bridgeReady && compilerStatus === 'idle'
         }
         statuses={statuses}
+        question={selectedQuestion}
+        user={user}
         showBackButton={!!initialQuestionId}
         hideRun={
           selectedQuestion?.type === 'output_prediction' ||
@@ -295,7 +303,12 @@ export default function HomeClient({ questions, initialQuestionId }: Props) {
       </MobileDrawer>
 
       <ShortcutsHelpDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
-      <SuccessOverlay show={showSuccess} onDone={() => { setShowSuccess(false); handleNextQuestion(); }} />
+      <SuccessOverlay
+        show={showSuccess}
+        reward={lastReward}
+        onNext={() => { setShowSuccess(false); handleNextQuestion(); }}
+        onReview={() => setShowSuccess(false)}
+      />
       <ErrorOverlay show={showError} onDone={() => setShowError(false)} />
     </div>
   );

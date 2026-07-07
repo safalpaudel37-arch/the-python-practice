@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getClient } from '@/lib/supabase/client'
+import { getCurrentUser } from '@/lib/auth/user'
+import { recordAttempt } from '@/lib/tracking'
+
+const LANGUAGES = new Set(['python', 'javascript', 'sql'])
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 const RATE_LIMIT = 30
@@ -49,12 +53,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 
-  const { questionId, userAnswer } =
-    (body as { questionId?: unknown; userAnswer?: unknown }) ?? {}
+  const { questionId, userAnswer, language } =
+    (body as { questionId?: unknown; userAnswer?: unknown; language?: unknown }) ?? {}
 
   if (typeof questionId !== 'string' || typeof userAnswer !== 'string') {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
+
+  const lang = typeof language === 'string' && LANGUAGES.has(language) ? language : 'python'
 
   if (questionId.length === 0 || questionId.length > MAX_QUESTION_ID_LENGTH) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
@@ -75,5 +81,15 @@ export async function POST(req: NextRequest) {
   }
 
   const correct = typeof data === 'boolean' ? data : false
-  return NextResponse.json({ correct })
+
+  // Record the attempt (community stats + per-user progress). Never blocks the answer.
+  const user = await getCurrentUser()
+  const reward = await recordAttempt({
+    userId: user?.id ?? null,
+    questionId,
+    language: lang,
+    correct,
+  })
+
+  return NextResponse.json({ correct, reward })
 }

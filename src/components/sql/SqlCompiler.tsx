@@ -10,6 +10,8 @@ import { usePglite } from './usePglite';
 import { parseSqlQuestion } from '@/lib/sql/parse';
 import { SQL_STARTER_CODE } from '@/lib/config';
 import { setSavedCode } from '@/lib/storage';
+import { reportAttempt } from '@/lib/report-attempt';
+import type { SolveReward } from '@/lib/tracking';
 import type { Question } from '@/lib/types';
 import type { EditorPanelHandle } from '@/components/EditorPanel';
 import type { CompilerHandle, WrongAttemptContext } from '@/components/Compiler';
@@ -24,7 +26,7 @@ interface HintProps {
 interface Props {
   question?: Question | null;
   initialCode?: string;
-  onAttempt?: (passed: boolean, wrongContext?: WrongAttemptContext) => void;
+  onAttempt?: (passed: boolean, wrongContext?: WrongAttemptContext, reward?: SolveReward | null) => void;
   onStatusChange?: (status: Status, bridgeReady: boolean, hasRun: boolean) => void;
   hintProps?: HintProps;
 }
@@ -120,10 +122,11 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
       const { setupSql } = parseSqlQuestion(q.question);
       try {
         const correct = await checkAnswer(codeRef.current, q.answer, setupSql || undefined);
+        const reward = await reportAttempt(q.id, 'sql', correct);
         onAttemptRef.current(correct, correct ? undefined : {
           userCode: codeRef.current,
           userAnswer: '',
-        });
+        }, reward);
       } catch (err) {
         console.error('[SqlCompiler] checkAnswer failed:', err);
         onAttemptRef.current(false, { userCode: codeRef.current, userAnswer: '' });
@@ -135,7 +138,7 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
     fetch('/api/check-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ questionId: q.id, userAnswer: '' }),
+      body: JSON.stringify({ questionId: q.id, userAnswer: '', language: 'sql' }),
       signal: AbortSignal.timeout(5000),
     })
       .then((r) => r.ok ? r.json() : { correct: false })

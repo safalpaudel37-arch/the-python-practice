@@ -7,12 +7,18 @@ import { keymap } from "@codemirror/view";
 import { python } from "@codemirror/lang-python";
 import { javascript } from "@codemirror/lang-javascript";
 import { sql } from "@codemirror/lang-sql";
+import { oneDark } from "@codemirror/theme-one-dark";
 
-const editorTheme = EditorView.theme({
-  "&": { height: "100%" },
-  ".cm-scroller": { overflow: "auto" },
-  ".cm-content": { fontFamily: "'JetBrains Mono', 'Fira Code', monospace" },
-});
+// Code surfaces stay dark navy in both app themes (design: --code-bg).
+const editorTheme = EditorView.theme(
+  {
+    "&": { height: "100%", backgroundColor: "var(--code-bg)" },
+    ".cm-scroller": { overflow: "auto" },
+    ".cm-content": { fontFamily: "var(--font-jetbrains-mono), 'JetBrains Mono', monospace" },
+    ".cm-gutters": { backgroundColor: "var(--code-bg)" },
+  },
+  { dark: true }
+);
 
 export interface EditorPanelHandle {
   focus(): void;
@@ -61,6 +67,7 @@ const EditorPanel = forwardRef<EditorPanelHandle, Props>(function EditorPanel(
             : language === 'javascript'
               ? javascript()
               : python(),
+          oneDark,
           editorTheme,
           Prec.highest(
             keymap.of([

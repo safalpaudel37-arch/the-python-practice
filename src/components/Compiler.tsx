@@ -8,6 +8,8 @@ import CompilerToolbar from "@/components/CompilerToolbar";
 import { WorkerBridge, OutputLine, WorkerConfig } from "@/components/execution/worker-bridge";
 import { AUTO_CHECK_TYPES, JS_STARTER_CODE, SQL_STARTER_CODE, STARTER_CODE } from "@/lib/config";
 import { setSavedCode } from "@/lib/storage";
+import { reportAttempt } from "@/lib/report-attempt";
+import type { SolveReward } from "@/lib/tracking";
 import { parseSqlQuestion } from "@/lib/sql/parse";
 import type { Question } from "@/lib/types";
 import type { EditorPanelHandle } from "@/components/EditorPanel";
@@ -54,7 +56,7 @@ interface HintProps {
 interface CompilerProps {
   question?: Question | null;
   initialCode?: string;
-  onAttempt?: (passed: boolean, wrongContext?: WrongAttemptContext) => void;
+  onAttempt?: (passed: boolean, wrongContext?: WrongAttemptContext, reward?: SolveReward | null) => void;
   onStatusChange?: (status: Status, bridgeReady: boolean, hasRun: boolean) => void;
   hintProps?: HintProps;
 }
@@ -305,11 +307,12 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
     // Client-side check for SQL and JS write_the_code — no pre-computed expected_output
     if (q && q.type === 'write_the_code' && (q.language === 'sql' || q.language === 'javascript')) {
       const setupCode = q.language === 'sql' ? parseSqlQuestion(q.question).setupSql : undefined;
-      bridgeRef.current?.checkAnswer(codeRef.current, q.answer, setupCode || undefined).then((correct) => {
+      bridgeRef.current?.checkAnswer(codeRef.current, q.answer, setupCode || undefined).then(async (correct) => {
+        const reward = await reportAttempt(q.id, q.language, correct);
         onAttemptRef.current?.(correct, correct ? undefined : {
           userCode: codeRef.current,
           userAnswer: lastStdoutRef.current,
-        });
+        }, reward);
       });
       return;
     }
@@ -325,16 +328,16 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
       fetch('/api/check-answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId: q.id, userAnswer }),
+        body: JSON.stringify({ questionId: q.id, userAnswer, language: q.language }),
         signal: AbortSignal.timeout(5000),
       })
         .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
-        .then((data: { correct?: boolean }) => {
+        .then((data: { correct?: boolean; reward?: SolveReward | null }) => {
           const passed = data.correct === true;
           onAttemptRef.current?.(passed, passed ? undefined : {
             userCode: q.type === 'write_the_code' ? codeRef.current : '',
             userAnswer,
-          });
+          }, data.reward ?? null);
         })
         .catch((err: unknown) => {
           // Network/timeout errors must not count as a wrong attempt
@@ -441,6 +444,7 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
         }
         hintProps={hintProps}
         language={language}
+        question={question}
       />
 
       {isPredictionType ? (

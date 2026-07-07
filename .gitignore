@@ -9,7 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
+DESIGN_BRIEF.md
 # testing
 /coverage
 
@@ -58,3 +58,5 @@ screenshot.mjs
 # claude code local settings
 .claude/settings.local.json
 .claude/worktrees/
+# prisma generated client (regenerate with `npm run db:generate`)
+/src/generated/

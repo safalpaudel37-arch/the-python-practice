@@ -1,4 +1,5 @@
 import { getQuestions } from '@/lib/supabase/queries';
+import { getCurrentUser } from '@/lib/auth/user';
 import HomeClient from '@/components/HomeClient';
 import type { Language } from '@/lib/types';
 
@@ -34,5 +35,6 @@ export default async function CompilerPage({ params }: Props) {
     );
   }
 
-  return <HomeClient questions={questions} initialQuestionId={id} />;
+  const user = await getCurrentUser();
+  return <HomeClient questions={questions} initialQuestionId={id} user={user} />;
 }

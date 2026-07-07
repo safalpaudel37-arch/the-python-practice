@@ -37,40 +37,48 @@ export default function OutputPanel({ lines, inputPrompt, onInputSubmit }: Props
     switch (type) {
       case "stderr":
       case "error":
-        return "text-destructive";
+        return "text-red";
       case "timeout":
-        return "text-amber-600 dark:text-amber-400";
+        return "text-copper";
       case "truncated":
-        return "text-muted-foreground";
+        return "text-ink-3";
       default:
-        return "text-foreground";
+        return "text-green";
     }
   }
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground font-mono text-sm overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 space-y-0.5">
+    <div className="flex h-full flex-col overflow-hidden bg-muted font-mono text-sm text-foreground">
+      <div className="shrink-0 border-b border-line px-4 py-2">
+        <span className="font-mono text-[10.5px] font-semibold uppercase tracking-[.12em] text-ink-3">
+          Output · stdout
+        </span>
+      </div>
+      <div className="flex-1 space-y-0.5 overflow-y-auto p-4">
         {lines.length === 0 && inputPrompt === null && (
-          <p className="text-muted-foreground select-none">Output will appear here…</p>
+          <p className="select-none text-[13px] text-ink-3">
+            Press <span className="font-semibold text-ink-2">Run</span> to see output, or{" "}
+            <span className="font-semibold text-ink-2">Submit</span> to check your answer.
+          </p>
         )}
 
         {lines.map((line) => (
           <pre
             key={line.id}
-            className={`whitespace-pre-wrap break-all leading-5 ${lineClass(line.type)}`}
+            className={`whitespace-pre-wrap break-all leading-5 animate-[pp-fadein_.25s_ease_both] ${lineClass(line.type)}`}
           >
             {line.text}
           </pre>
         ))}
 
         {inputPrompt !== null && (
-          <form onSubmit={handleSubmit} className="flex items-center gap-1 mt-1">
-            <span className="text-foreground whitespace-pre">{inputPrompt}</span>
+          <form onSubmit={handleSubmit} className="mt-1 flex items-center gap-1">
+            <span className="whitespace-pre text-foreground">{inputPrompt}</span>
             <input
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 bg-transparent border-b border-border text-foreground outline-none caret-foreground min-w-0 text-base md:text-sm"
+              className="min-w-0 flex-1 border-b border-line-2 bg-transparent text-base text-foreground caret-copper outline-none md:text-sm"
               autoComplete="off"
               spellCheck={false}
             />
