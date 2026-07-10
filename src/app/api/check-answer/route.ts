@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await getClient().rpc('check_answer', {
     question_id: questionId,
     user_answer: userAnswer,
-    language: lang,
+
   })
 
   if (error) {
@@ -88,8 +88,7 @@ export async function POST(req: NextRequest) {
   const reward = await recordAttempt({
     userId: user?.id ?? null,
     questionId,
-    language: lang,
-    correct,
+    language: lang,   correct,
   })
 
   return NextResponse.json({ correct, reward })
