@@ -1,8 +1,10 @@
 import type { SolveReward } from '@/lib/tracking'
 
 /**
- * Fire-and-forget attempt recording for client-checked question types.
- * Returns the solve reward (points/streak) when the server grants one.
+ * Fire-and-forget attempt recording for client-checked question types
+ * (SQL / JavaScript write_the_code run entirely in the browser).
+ * Sends `correct` directly to /api/check-answer, which skips the Supabase
+ * RPC when `correct` is present. Returns the solve reward when granted.
  */
 export async function reportAttempt(
   questionId: string,
@@ -10,7 +12,7 @@ export async function reportAttempt(
   correct: boolean
 ): Promise<SolveReward | null> {
   try {
-    const res = await fetch('/api/attempts', {
+    const res = await fetch('/api/check-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ questionId, language, correct }),
