@@ -1,85 +1,13 @@
-// ============================================================
-// ADMIN: Bulk Question Insert API
-// DEV-ONLY — disabled automatically in production (NODE_ENV=production)
-// ============================================================
-//
-// ── SETUP STEPS ─────────────────────────────────────────────
-//
-// STEP 1 — Run the database migration (creates the 7 language tables):
-//   Option A (Supabase Dashboard):
-//     Dashboard → SQL Editor → paste supabase-admin-migration.sql → Run
-//   Option B (CLI):
-//     supabase db push
-//
-// STEP 2 — Add these variables to .env.local:
-//   SUPABASE_SERVICE_ROLE_KEY=eyJ...
-//     ^ Dashboard → Project Settings → API → service_role (secret key)
-//   ADMIN_SECRET=<generate with: openssl rand -base64 32>
-//
-// STEP 3 — Start the dev server:
-//   npm run dev
-//
-// ── POSTMAN USAGE ───────────────────────────────────────────
-//
-// POST http://localhost:3000/api/admin/add-questions
-// Content-Type: application/json
-//
-// {
-//   "secret": "<your ADMIN_SECRET value>",
-//   "table": "javascript",
-//   "questions": [
-//     {
-//       "id": "JS001",
-//       "tier": "simple",
-//       "topic": "variables",
-//       "type": "write_the_code",
-//       "question": "Declare a variable x and assign it the value 5.",
-//       "answer": "let x = 5;",
-//       "alternative_answer": "var x = 5;",
-//       "explanation": "Variables in JS are declared with let, const, or var.",
-//       "expected_output": null
-//     }
-//   ]
-// }
-//
-// Accepted values for "table":
-//   "javascript" | "pytorch" | "numpy" | "pandas" | "c" | "cpp" | "c++" | "rust"
-//
-// Accepted values for "tier":
-//   "simple" | "intermediate" | "hard" | "expert"
-//
-// Accepted values for "type":
-//   "write_the_code" | "fill_in_the_blank" | "output_prediction"
-//   "spot_the_bug"   | "what_is_the_result"
-//
-// "alternative_answer" and "expected_output" are optional (pass null if unused).
-// You can send 1–100 questions per request.
-//
-// Success response:  { "inserted": 42, "errors": [] }
-// Validation error:  { "errors": [{ "index": 0, "field": "tier", "message": "..." }] }
-// Auth error:        { "error": "Unauthorized" }
-//
-// ── PRODUCTION ──────────────────────────────────────────────
-//
-// This endpoint returns 403 when NODE_ENV=production (Vercel sets this automatically).
-// If you ever need to run it in production once, comment out APPROACH A below
-// and uncomment APPROACH B, then set ADMIN_API_ENABLED=true in your env vars.
-//
-// ============================================================
+// Dev-only bulk question insert. Disabled in production (NODE_ENV=production).
+// Requires SUPABASE_SERVICE_ROLE_KEY and ADMIN_SECRET in .env.local. See AGENTS.md.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin-client'
 
 const TABLE_MAP: Record<string, string> = {
   javascript: 'javascript_questions',
-  pytorch:    'pytorch_questions',
-  numpy:      'numpy_questions',
-  pandas:     'pandas_questions',
-  c:          'c_questions',
-  'c++':      'cpp_questions',
-  cpp:        'cpp_questions',
-  rust:       'rust_questions',
-  sql : "sql_questions",
+  python:     'questions',
+  sql:        'sql_questions',
 }
 
 const VALID_TIERS = ['simple', 'intermediate', 'hard', 'expert'] as const
@@ -139,9 +67,7 @@ function validateQuestions(questions: unknown[]): ValidationError[] {
     if (typeof item.answer !== 'string' || item.answer.trim() === '') {
       errors.push({ index: i, field: 'answer', message: 'must be a non-empty string' })
     }
-    if (!('alternative_answer' in item)) {
-      errors.push({ index: i, field: 'alternative_answer', message: 'field must be present (use null if none)' })
-    } else if (item.alternative_answer !== null && typeof item.alternative_answer !== 'string') {
+    if (item.alternative_answer !== null && typeof item.alternative_answer !== 'string') {
       errors.push({ index: i, field: 'alternative_answer', message: 'must be a string or null' })
     }
     if (typeof item.explanation !== 'string' || item.explanation.trim() === '') {
@@ -156,14 +82,9 @@ function validateQuestions(questions: unknown[]): ValidationError[] {
 }
 
 export async function POST(req: NextRequest) {
-  // APPROACH A (default): disabled in production
   if (process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Endpoint disabled' }, { status: 403 })
   }
-  // APPROACH B: explicit opt-in flag (comment out A and uncomment B if needed in prod)
-  // if (process.env.ADMIN_API_ENABLED !== 'true') {
-  //   return NextResponse.json({ error: 'Endpoint disabled' }, { status: 403 })
-  // }
 
   let body: unknown
   try {
