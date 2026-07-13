@@ -2,16 +2,8 @@
 
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { TIER_LABELS, TIER_ORDER } from '@/lib/config';
+import { TIER_LABELS, TIER_ORDER, TIER_SHORT_LABELS } from '@/lib/config';
 import type { Tier, Question } from '@/lib/types';
-
-/** Short labels that fit four segments in a 288px rail. */
-const SHORT_LABELS: Record<string, string> = {
-  simple: 'Simple',
-  intermediate: 'Inter',
-  hard: 'Hard',
-  expert: 'Expert',
-};
 
 interface Props {
   activeTier: Tier;
@@ -43,7 +35,7 @@ export default function TierTabs({ activeTier, onTierChange, questions }: Props)
                 : 'text-ink-2 hover:text-ink'
             )}
           >
-            {SHORT_LABELS[tier]}
+            {TIER_SHORT_LABELS[tier]}
           </button>
         ))}
       </div>

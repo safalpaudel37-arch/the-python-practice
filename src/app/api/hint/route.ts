@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { LANG_LABEL } from '@/lib/config';
 
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 10;
@@ -31,7 +32,7 @@ function buildPrompt(
   userCode: string,
   userAnswer: string,
 ): string {
-  const langLabel = language === 'javascript' ? 'JavaScript' : 'Python';
+  const langLabel = LANG_LABEL[language] ?? 'Python';
   const codeBlock = userCode.trim() ? `Student's code:\n${userCode}\n` : '';
   return `You are a friendly ${langLabel} tutor helping a beginner student.
 The student got a question wrong and needs a small hint to guide them.

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getCurrentUser } from '@/lib/auth/user'
 import { blockAdmins } from '@/lib/auth/admin'
+import { LANG_LABEL } from '@/lib/config'
 import {
   getLeaderboard,
   type LeaderboardLanguage,
@@ -11,12 +12,6 @@ import { Logo } from '@/components/brand/Logo'
 import { UserMenu } from '@/components/auth/UserMenu'
 
 export const dynamic = 'force-dynamic'
-
-const LANG_LABEL: Record<string, string> = {
-  python: 'Python',
-  javascript: 'JavaScript',
-  sql: 'SQL',
-}
 
 export async function generateMetadata({ searchParams }: Props) {
   const params = await searchParams

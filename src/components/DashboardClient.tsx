@@ -13,6 +13,7 @@ import {
   TIER_LABELS,
   TIER_ORDER,
   TIER_COLOR_VAR,
+  TIER_SHORT_LABELS,
   TYPE_SHORT_LABELS,
   LANGUAGES,
   SUPPORTED_LANGS,
@@ -21,14 +22,6 @@ import { ProgressRing } from '@/components/ui/ProgressRing';
 import { Logo } from '@/components/brand/Logo';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { GuestBanner } from '@/components/auth/GuestBanner';
-
-/** Short tier names for narrow screens. */
-const TIER_SHORT_LABELS: Record<string, string> = {
-  simple: 'Simple',
-  intermediate: 'Inter',
-  hard: 'Hard',
-  expert: 'Expert',
-};
 
 const STATUS_FILTERS: { value: QuestionStatus | null; label: string }[] = [
   { value: null, label: 'All status' },
