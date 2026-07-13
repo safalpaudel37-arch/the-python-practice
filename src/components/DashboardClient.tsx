@@ -72,7 +72,7 @@ export default function DashboardClient({
   const [statusFilter, setStatusFilter] = useState<QuestionStatus | null>(null);
   const [search, setSearch] = useState('');
   const [statuses, setStatuses] = useState<Record<string, QuestionStatus>>(serverStatuses);
-  const [resume, setResume] = useState<{ questionId: string; topic?: string } | null>(null);
+  const [resume, setResume] = useState<{ questionId: string } | null>(null);
 
   useEffect(() => {
     // Logged in: guest data (progress, attempts, saved code) is wiped — the
