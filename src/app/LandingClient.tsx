@@ -44,10 +44,10 @@ const LANG_CARDS = [
 ];
 
 const LADDER = [
-  { n: 1, name: 'Simple', count: 30, tint: 'bg-green-100', dot: 'bg-green', desc: 'Find your footing — variables, loops, strings.' },
-  { n: 2, name: 'Intermediate', count: 35, tint: 'bg-blue-100', dot: 'bg-blue', desc: 'Build fluency — dicts, comprehensions, functions.' },
-  { n: 3, name: 'Hard', count: 40, tint: 'bg-copper-100', dot: 'bg-copper', desc: 'Think in patterns — recursion, algorithms.' },
-  { n: 4, name: 'Expert', count: 40, tint: 'bg-red-100', dot: 'bg-red', desc: 'Own it — edge cases, performance, elegance.' },
+  { n: 1, name: 'Simple', tint: 'bg-green-100', dot: 'bg-green', desc: 'Find your footing — variables, loops, strings.' },
+  { n: 2, name: 'Intermediate', tint: 'bg-blue-100', dot: 'bg-blue', desc: 'Build fluency — dicts, comprehensions, functions.' },
+  { n: 3, name: 'Hard', tint: 'bg-copper-100', dot: 'bg-copper', desc: 'Think in patterns — recursion, algorithms.' },
+  { n: 4, name: 'Expert', tint: 'bg-red-100', dot: 'bg-red', desc: 'Own it — edge cases, performance, elegance.' },
 ];
 
 const AVATAR_BG = ['bg-copper', 'bg-blue', 'bg-[#5C564A]'];
@@ -135,7 +135,7 @@ export default function LandingClient({
 
             {/* Stat strip */}
             <div className="mt-9 flex flex-wrap gap-8 border-t border-line pt-6">
-              <Stat value={String(problemCount)} label="problems" />
+              <Stat value={problemCount > 0 ? String(problemCount) : '—'} label="problems" />
               <Stat
                 value={
                   <>
@@ -145,7 +145,6 @@ export default function LandingClient({
                 label="languages"
               />
               <Stat value="4" label="question types" />
-              <Stat value={<span className="text-copper">2.4k</span>} label="learners" />
             </div>
           </div>
 
@@ -281,7 +280,6 @@ export default function LandingClient({
                   {t.n}
                 </span>
                 <h3 className="mt-3 font-heading text-[16px] font-bold">{t.name}</h3>
-                <p className="font-mono text-[11px] text-ink-3">{t.count} problems</p>
                 <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{t.desc}</p>
               </div>
             ))}
@@ -299,26 +297,35 @@ export default function LandingClient({
             </Link>
           </div>
           <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-sm)]">
-            {topLearners.map((l, i) => (
-              <div
-                key={l.handle}
-                className={`flex items-center gap-4 px-5 py-3.5 ${
-                  i === 0 ? 'bg-copper-050' : ''
-                } ${i > 0 ? 'border-t border-line' : ''}`}
-              >
-                <span className={`w-4 font-mono text-[14px] font-bold ${i === 0 ? 'text-copper' : 'text-ink-3'}`}>
-                  {i + 1}
-                </span>
-                <span
-                  className={`grid size-[34px] place-items-center rounded-full text-[14px] font-semibold text-white ${AVATAR_BG[i]}`}
-                >
-                  {l.handle.charAt(0).toUpperCase()}
-                </span>
-                <span className="flex-1 text-[14.5px] font-semibold">@{l.handle}</span>
-                <span className="text-[13px] text-ink-3">{l.solved} solved</span>
-                <span className="font-mono text-[14px] font-bold text-copper">{l.points} pts</span>
+            {topLearners.length === 0 ? (
+              <div className="px-5 py-10 text-center">
+                <p className="text-[14px] font-medium text-ink-2">Leaderboard is warming up.</p>
+                <p className="mt-1 text-[13px] text-ink-3">
+                  Solve a problem to be the first on the board.
+                </p>
               </div>
-            ))}
+            ) : (
+              topLearners.map((l, i) => (
+                <div
+                  key={l.handle}
+                  className={`flex items-center gap-4 px-5 py-3.5 ${
+                    i === 0 ? 'bg-copper-050' : ''
+                  } ${i > 0 ? 'border-t border-line' : ''}`}
+                >
+                  <span className={`w-4 font-mono text-[14px] font-bold ${i === 0 ? 'text-copper' : 'text-ink-3'}`}>
+                    {i + 1}
+                  </span>
+                  <span
+                    className={`grid size-[34px] place-items-center rounded-full text-[14px] font-semibold text-white ${AVATAR_BG[i % AVATAR_BG.length]}`}
+                  >
+                    {l.handle.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="flex-1 text-[14.5px] font-semibold">@{l.handle}</span>
+                  <span className="text-[13px] text-ink-3">{l.solved} solved</span>
+                  <span className="font-mono text-[14px] font-bold text-copper">{l.points} pts</span>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
