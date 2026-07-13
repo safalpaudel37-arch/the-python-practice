@@ -7,8 +7,6 @@ import AttemptsCounter from './AttemptsCounter';
 import RevealPrompt from './RevealPrompt';
 import SolutionCard from './SolutionCard';
 
-type Stage = 'hidden' | 'unlocked' | 'revealed';
-
 interface Props {
   question: Question | null;
   attemptCount: number;
@@ -35,20 +33,18 @@ export default function SolutionRevealPanel({
 
   if (!question || questionStatus === 'solved') return null;
 
-  const stage: Stage =
-    revealed
-      ? 'revealed'
-      : attemptCount >= MAX_ATTEMPTS
-        ? 'unlocked'
-        : 'hidden';
+  const unlocked = !revealed && attemptCount >= MAX_ATTEMPTS;
 
-  if (stage === 'hidden' && attemptCount === 0) return null;
+  // Hidden until the user has at least one attempt, or unlocked after max attempts
+  if (!revealed && !unlocked && attemptCount === 0) return null;
 
   return (
     <div className="overflow-hidden border-t border-copper/25 bg-copper-050 transition-all duration-300">
-      {stage === 'hidden' && attemptCount > 0 && <AttemptsCounter attemptCount={attemptCount} />}
-      {stage === 'unlocked' && <RevealPrompt onReveal={() => setRevealed(true)} />}
-      {stage === 'revealed' && (
+      {!revealed && !unlocked && attemptCount > 0 && (
+        <AttemptsCounter attemptCount={attemptCount} />
+      )}
+      {unlocked && <RevealPrompt onReveal={() => setRevealed(true)} />}
+      {revealed && (
         <SolutionCard
           question={question}
           onTryAgain={() => { setRevealed(false); onTryAgain(); }}
