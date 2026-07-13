@@ -13,14 +13,14 @@ export const getQuestions = cache(async function getQuestions(language?: Languag
 
   const { data, error } = await getClient()
     .from(table)
-    .select('id, tier, topic, type, question, answer, alternative_answer, explanation, created_at')
+    .select('id, tier, topic, type, question, answer, alternative_answer, explanation')
     .order('tier', { ascending: false })
     .order('id', { ascending: true })
 
   if (error) throw error
 
-  return (data as Omit<Question, 'language'>[]).map((row) => ({
+  return (data as Question[]).map((row) => ({
     ...row,
     language: language ?? 'python',
-  })) as Question[]
+  }))
 })
