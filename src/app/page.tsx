@@ -4,16 +4,10 @@ import LandingClient, { type TopLearner } from './LandingClient'
 
 export const dynamic = 'force-dynamic'
 
-const FALLBACK_TOP: TopLearner[] = [
-  { handle: 'devkat', solved: 96, points: 312 },
-  { handle: 'maya', solved: 88, points: 287 },
-  { handle: 'jonas', solved: 79, points: 241 },
-]
-
 export default async function Home() {
   await blockAdmins()
-  let problemCount = 145
-  let top: TopLearner[] = FALLBACK_TOP
+  let problemCount = 0
+  let top: TopLearner[] = []
 
   try {
     const [py, js, sq] = await Promise.all([
@@ -21,7 +15,7 @@ export default async function Home() {
       prisma.javascript_questions.count(),
       prisma.sql_questions.count(),
     ])
-    if (py + js + sq > 0) problemCount = py + js + sq
+    problemCount = py + js + sq
 
     const profiles = await prisma.profile.findMany({
       where: { points: { gt: 0 } },
@@ -29,7 +23,7 @@ export default async function Home() {
       take: 3,
       select: { id: true, handle: true, points: true },
     })
-    if (profiles.length === 3) {
+    if (profiles.length > 0) {
       const solvedCounts = await prisma.progress.groupBy({
         by: ['userId'],
         where: { userId: { in: profiles.map((p) => p.id) }, status: 'SOLVED' },

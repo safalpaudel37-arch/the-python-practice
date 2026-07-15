@@ -3,15 +3,10 @@ import type { QuestionStatus } from './types'
 type LastSession = {
   questionId: string
   tier: string
-  timestamp: number
-}
-
-function isClient(): boolean {
-  return typeof window !== 'undefined'
 }
 
 function safeLocalStorage(): Storage | null {
-  if (!isClient()) return null
+  if (typeof window === 'undefined') return null
   try {
     // Quick availability check — throws in some private-browsing modes or when quota is full
     const test = '__ls_test__'
@@ -44,15 +39,6 @@ export function clearGuestData(): void {
     }
     doomed.forEach((k) => ls.removeItem(k))
   } catch { /* unavailable */ }
-}
-
-export function getQuestionStatus(id: string): QuestionStatus {
-  try {
-    const ls = safeLocalStorage()
-    return (ls?.getItem(`qstatus:${id}`) as QuestionStatus) ?? 'not_started'
-  } catch {
-    return 'not_started'
-  }
 }
 
 export function setQuestionStatus(id: string, status: QuestionStatus): void {
@@ -143,7 +129,7 @@ export function setLastSession(questionId: string, tier: string): void {
   try {
     safeLocalStorage()?.setItem(
       'session:last',
-      JSON.stringify({ questionId, tier, timestamp: Date.now() })
+      JSON.stringify({ questionId, tier })
     )
   } catch { /* quota exceeded or unavailable */ }
 }

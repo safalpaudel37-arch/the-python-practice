@@ -1,7 +1,7 @@
 'use client';
 
-import { Play, SendHorizonal } from 'lucide-react';
 import HintButton from '@/components/solution/HintButton';
+import { RunSubmitButtons } from '@/components/RunSubmitButtons';
 import type { Question } from '@/lib/types';
 import type { WrongAttemptContext } from '@/components/Compiler';
 
@@ -67,42 +67,14 @@ export default function CompilerToolbar({
       </div>
 
       <div className="flex items-center gap-2">
-        {!hideRun && (
-          <button
-            onClick={onRun}
-            disabled={isLoading || isRunning}
-            className={
-              isRunning || isLoading
-                ? 'flex h-8 cursor-not-allowed items-center gap-1.5 rounded-[9px] border-[1.5px] border-line px-3.5 text-[13px] font-semibold text-ink-3'
-                : 'flex h-8 items-center gap-1.5 rounded-[9px] border-[1.5px] border-line-2 px-3.5 text-[13px] font-semibold text-ink hover:border-blue hover:text-blue'
-            }
-          >
-            {isRunning ? (
-              <>
-                <span className="size-3 animate-[pp-spin_.7s_linear_infinite] rounded-full border-2 border-copper border-t-transparent" />
-                Running…
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                Run
-              </>
-            )}
-          </button>
-        )}
-
-        <button
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          className={
-            canSubmit
-              ? 'flex h-8 items-center gap-1.5 rounded-[9px] bg-blue px-3.5 text-[13px] font-semibold text-on-blue shadow-[var(--shadow-sm)] hover:bg-blue-600'
-              : 'flex h-8 cursor-not-allowed items-center gap-1.5 rounded-[9px] bg-surface-2 px-3.5 text-[13px] font-semibold text-ink-3'
-          }
-        >
-          <SendHorizonal className="size-3.5" />
-          Submit
-        </button>
+        <RunSubmitButtons
+          onRun={onRun}
+          onSubmit={onSubmit}
+          isRunning={isRunning}
+          isLoading={isLoading}
+          canSubmit={canSubmit}
+          hideRun={hideRun}
+        />
 
         <span className="mx-1 h-5 w-px bg-line" />
 

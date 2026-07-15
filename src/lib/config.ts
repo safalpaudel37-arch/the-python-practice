@@ -17,6 +17,21 @@ export const TIER_LABELS: Record<string, string> = {
   expert: 'Expert',
 };
 
+/** Short tier names for narrow screens/badges. */
+export const TIER_SHORT_LABELS: Record<string, string> = {
+  simple: 'Simple',
+  intermediate: 'Inter',
+  hard: 'Hard',
+  expert: 'Expert',
+};
+
+/** Plain-text language labels (no emoji) for metadata, hints, headings. */
+export const LANG_LABEL: Record<string, string> = {
+  python: 'Python',
+  javascript: 'JavaScript',
+  sql: 'SQL',
+};
+
 export const TIER_ORDER = ['simple', 'intermediate', 'hard', 'expert'] as const;
 
 /** Short question-type labels used on badges (design spec). */

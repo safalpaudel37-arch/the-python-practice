@@ -45,7 +45,7 @@ export function LoginClient() {
           </div>
         </div>
         <p className="font-mono text-xs text-[#79839B]">
-          145 problems · 3 languages · 2.4k learners
+          3 languages · in-browser execution · no setup
         </p>
       </div>
 

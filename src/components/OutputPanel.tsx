@@ -40,8 +40,6 @@ export default function OutputPanel({ lines, inputPrompt, onInputSubmit }: Props
         return "text-red";
       case "timeout":
         return "text-copper";
-      case "truncated":
-        return "text-ink-3";
       default:
         return "text-green";
     }

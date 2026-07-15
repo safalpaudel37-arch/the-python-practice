@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import dynamic from 'next/dynamic';
 import CompilerToolbar from '@/components/CompilerToolbar';
+import { ResizableSplit } from '@/components/ResizableSplit';
 import { SqlResultTable } from './SqlResultTable';
 import { SqlErrorDisplay } from './SqlErrorDisplay';
 import { SqlSchemaPanel } from './SqlSchemaPanel';
@@ -10,6 +11,7 @@ import { usePglite } from './usePglite';
 import { parseSqlQuestion } from '@/lib/sql/parse';
 import { SQL_STARTER_CODE } from '@/lib/config';
 import { setSavedCode } from '@/lib/storage';
+import { debounce } from '@/lib/utils';
 import { reportAttempt } from '@/lib/report-attempt';
 import type { SolveReward } from '@/lib/tracking';
 import type { Question } from '@/lib/types';
@@ -40,14 +42,6 @@ const EditorPanel = dynamic(() => import('@/components/EditorPanel'), {
   ),
 });
 
-function debounce<T extends unknown[]>(fn: (...args: T) => void, ms: number) {
-  let t: ReturnType<typeof setTimeout>;
-  return (...args: T) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), ms);
-  };
-}
-
 const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
   { question, initialCode, onAttempt, onStatusChange, hintProps },
   ref
@@ -60,10 +54,7 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
   const [status, setStatus] = useState<Status>('loading');
   const [hasRun, setHasRun] = useState(false);
 
-  const [split, setSplit] = useState(60);
   const [schemaRefreshKey, setSchemaRefreshKey] = useState(0);
-  const dragging = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorPanelHandle>(null);
 
   const codeRef = useRef(code);
@@ -180,28 +171,6 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
     isReady: () => ready,
   }));
 
-  // Resizable drag handle
-  const onMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    dragging.current = true;
-  };
-
-  useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (!dragging.current || !containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const pct = ((e.clientX - rect.left) / rect.width) * 100;
-      setSplit(Math.min(80, Math.max(20, pct)));
-    };
-    const onMouseUp = () => { dragging.current = false; };
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, []);
-
   const canSubmit = hasRun && ready && status === 'idle';
 
   return (
@@ -216,9 +185,8 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
         language="sql"
       />
 
-      <div ref={containerRef} className="flex flex-1 overflow-hidden md:flex-row flex-col">
-        {/* Editor panel */}
-        <div style={{ flexBasis: `${split}%` }} className="min-w-0 overflow-hidden min-h-[240px] md:min-h-0">
+      <ResizableSplit
+        left={
           <EditorPanel
             key={question?.id ?? 'sql-default'}
             ref={editorRef}
@@ -227,60 +195,52 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
             onRun={handleRun}
             language="sql"
           />
-        </div>
-
-        {/* Drag handle */}
-        <div
-          onMouseDown={onMouseDown}
-          className="w-1 bg-border hover:bg-primary cursor-col-resize hidden md:block shrink-0 transition-colors"
-        />
-
-        {/* Output + schema */}
-        <div
-          style={{ flexBasis: `${100 - split}%` }}
-          className="min-w-0 overflow-hidden min-h-[180px] md:min-h-0 flex flex-col"
-        >
-          {/* Query output */}
-          <div className="flex-1 overflow-auto p-4 bg-background font-mono text-sm">
-            {initError && (
-              <p className="text-destructive text-sm">
-                Failed to initialize SQL engine: {initError}
-              </p>
-            )}
-            {!initError && result === null && (
-              <p className="text-muted-foreground select-none">
-                Results will appear here after you run a query.
-              </p>
-            )}
-            {result?.status === 'success' && <SqlResultTable results={result.results} />}
-            {result?.status === 'error' && (
-              <SqlErrorDisplay title={result.title} message={result.message} hint={result.hint} />
-            )}
-            {result?.status === 'empty' && (
-              <p className="text-muted-foreground italic">{result.message}</p>
-            )}
-          </div>
-
-          {/* Schema browser + reset */}
-          <div className="border-t border-border p-3 bg-background flex flex-col gap-2 overflow-auto shrink-0" style={{ maxHeight: '55%' }}>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider" />
-              <button
-                onClick={handleReset}
-                disabled={!ready}
-                className="text-xs font-mono text-muted-foreground hover:text-foreground border border-border hover:border-foreground/40 rounded px-2 py-1 transition-colors disabled:opacity-40 shrink-0"
-              >
-                Reset Data
-              </button>
+        }
+        rightClassName="flex flex-col"
+        right={
+          <>
+            {/* Query output */}
+            <div className="flex-1 overflow-auto p-4 bg-background font-mono text-sm">
+              {initError && (
+                <p className="text-destructive text-sm">
+                  Failed to initialize SQL engine: {initError}
+                </p>
+              )}
+              {!initError && result === null && (
+                <p className="text-muted-foreground select-none">
+                  Results will appear here after you run a query.
+                </p>
+              )}
+              {result?.status === 'success' && <SqlResultTable results={result.results} />}
+              {result?.status === 'error' && (
+                <SqlErrorDisplay title={result.title} message={result.message} hint={result.hint} />
+              )}
+              {result?.status === 'empty' && (
+                <p className="text-muted-foreground italic">{result.message}</p>
+              )}
             </div>
-            <SqlSchemaPanel
-              runQuery={runQuery}
-              ready={ready}
-              refreshKey={schemaRefreshKey}
-            />
-          </div>
-        </div>
-      </div>
+
+            {/* Schema browser + reset */}
+            <div className="border-t border-border p-3 bg-background flex flex-col gap-2 overflow-auto shrink-0" style={{ maxHeight: '55%' }}>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider" />
+                <button
+                  onClick={handleReset}
+                  disabled={!ready}
+                  className="text-xs font-mono text-muted-foreground hover:text-foreground border border-border hover:border-foreground/40 rounded px-2 py-1 transition-colors disabled:opacity-40 shrink-0"
+                >
+                  Reset Data
+                </button>
+              </div>
+              <SqlSchemaPanel
+                runQuery={runQuery}
+                ready={ready}
+                refreshKey={schemaRefreshKey}
+              />
+            </div>
+          </>
+        }
+      />
     </div>
   );
 });

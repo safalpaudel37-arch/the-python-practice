@@ -3,7 +3,7 @@ import { getQuestions } from '@/lib/supabase/queries';
 import { getCurrentUser } from '@/lib/auth/user';
 import { blockAdmins } from '@/lib/auth/admin';
 import { getQuestionStatsByLanguage, type QuestionStats } from '@/lib/tracking';
-import { prisma } from '@/lib/prisma';
+import { getServerProgress } from '@/lib/progress';
 import { KNOWN_LANGS, SUPPORTED_LANGS } from '@/lib/config';
 import DashboardClient from '@/components/DashboardClient';
 import type { Language, Question, QuestionStatus } from '@/lib/types';
@@ -13,13 +13,6 @@ export const dynamic = 'force-dynamic';
 interface Props {
   params: Promise<{ lang: string }>;
 }
-
-const STATUS_MAP: Record<string, QuestionStatus> = {
-  NOT_STARTED: 'not_started',
-  ATTEMPTED: 'attempted',
-  SOLVED: 'solved',
-  SKIPPED: 'skipped',
-};
 
 export default async function LangPage({ params }: Props) {
   await blockAdmins();
@@ -45,13 +38,7 @@ export default async function LangPage({ params }: Props) {
 
     if (user) {
       try {
-        const progress = await prisma.progress.findMany({
-          where: { userId: user.id, language: lang },
-          select: { questionId: true, status: true },
-        });
-        serverStatuses = Object.fromEntries(
-          progress.map((p) => [p.questionId, STATUS_MAP[p.status] ?? 'not_started'])
-        );
+        serverStatuses = (await getServerProgress(user.id, lang as Language)).statuses;
       } catch (e) {
         console.error('[dashboard] progress fetch failed', e);
       }

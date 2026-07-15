@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Keyboard, Menu, Moon, Play, SendHorizonal, Sun } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Spinner } from '@/components/ui/spinner';
+import { ArrowLeft, Keyboard, Menu, Moon, Sun } from 'lucide-react';
+import { RunSubmitButtons } from '@/components/RunSubmitButtons';
 import HintButton from '@/components/solution/HintButton';
 import { Logo } from '@/components/brand/Logo';
 import { UserMenu } from '@/components/auth/UserMenu';
@@ -93,46 +92,15 @@ export default function AppHeader({
 
       {/* Right: run/submit (mobile), hint, shortcuts, theme, avatar */}
       <div className="flex shrink-0 items-center gap-1.5">
-        {!hideRun && (
-          <button
-            onClick={onRun}
-            disabled={isLoading || isRunning}
-            className={cn(
-              'flex h-8 items-center gap-1.5 rounded-[9px] border-[1.5px] px-3 text-[13px] font-semibold lg:hidden',
-              isRunning || isLoading
-                ? 'cursor-not-allowed border-line text-ink-3'
-                : 'border-line-2 text-ink hover:border-blue hover:text-blue'
-            )}
-          >
-            {isRunning ? (
-              <>
-                <Spinner className="size-3.5 text-copper" />
-                Running…
-              </>
-            ) : (
-              <>
-                <Play className="size-3.5" />
-                Run
-              </>
-            )}
-          </button>
-        )}
-
-        <button
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          className={cn(
-            'flex h-8 items-center gap-1.5 rounded-[9px] px-3 text-[13px] font-semibold lg:hidden',
-            canSubmit
-              ? 'bg-blue text-on-blue hover:bg-blue-600'
-              : 'cursor-not-allowed bg-surface-2 text-ink-3'
-          )}
-        >
-          <SendHorizonal className="size-3.5" />
-          Submit
-        </button>
-
-        <div className="lg:hidden">
+        <div className="flex items-center gap-1.5 lg:hidden">
+          <RunSubmitButtons
+            onRun={onRun}
+            onSubmit={onSubmit}
+            isRunning={isRunning}
+            isLoading={isLoading}
+            canSubmit={canSubmit}
+            hideRun={hideRun}
+          />
           <HintButton question={question ?? undefined} wrongContext={hintProps?.wrongContext} />
         </div>
 

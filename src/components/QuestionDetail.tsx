@@ -42,6 +42,8 @@ export default function QuestionDetail({ question, open, onOpenChange }: Props) 
     );
   }
 
+  const prompt = promptText(question);
+
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
       <div className="border-b border-line bg-surface">
@@ -70,9 +72,9 @@ export default function QuestionDetail({ question, open, onOpenChange }: Props) 
         <CollapsibleContent>
           <div className="px-4 pb-3.5">
             <pre className="whitespace-pre-wrap rounded-xl bg-code-bg p-3.5 font-mono text-xs leading-relaxed text-code-ink">
-              {promptText(question).text}
+              {prompt.text}
             </pre>
-            {promptText(question).blanksInEditor && (
+            {prompt.blanksInEditor && (
               <p className="mt-2 text-[12px] text-ink-3">
                 Fill in the <span className="font-mono text-copper">___</span> blanks directly in
                 the code editor below.

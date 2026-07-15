@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { LANG_LABEL } from '@/lib/config';
+import { getClientIp, makeRateLimiter } from '@/lib/api/rate-limit';
 
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10;
-const WINDOW_MS = 60_000;
+const checkRateLimit = makeRateLimiter(10);
 const MAX_FIELD_LENGTH = 5_000;
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -10,18 +10,6 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 // more reliable than the previous Gemini free tier. Override via env to swap
 // models without code changes (e.g. deepseek/deepseek-chat, qwen/qwen-2.5-coder-32b-instruct).
 const DEFAULT_MODEL = 'meta-llama/llama-3.3-70b-instruct';
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return true;
-  }
-  if (entry.count >= RATE_LIMIT) return false;
-  entry.count++;
-  return true;
-}
 
 function buildPrompt(
   language: string,
@@ -31,7 +19,7 @@ function buildPrompt(
   userCode: string,
   userAnswer: string,
 ): string {
-  const langLabel = language === 'javascript' ? 'JavaScript' : 'Python';
+  const langLabel = LANG_LABEL[language] ?? 'Python';
   const codeBlock = userCode.trim() ? `Student's code:\n${userCode}\n` : '';
   return `You are a friendly ${langLabel} tutor helping a beginner student.
 The student got a question wrong and needs a small hint to guide them.
@@ -44,15 +32,6 @@ ${codeBlock}Student's submitted answer: ${userAnswer}
 Give a hint in 1-2 short sentences. Be direct and simple.
 Point out specifically what they got wrong and what they should try instead — but do NOT give away the full answer or write the code for them.
 No preamble, no "Great try!", no encouragement fluff. Just the useful hint.`;
-}
-
-function getClientIp(req: NextRequest): string {
-  return (
-    req.headers.get('cf-connecting-ip') ??
-    req.headers.get('x-real-ip') ??
-    req.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ??
-    'unknown'
-  );
 }
 
 export async function POST(req: NextRequest) {
