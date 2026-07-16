@@ -16,9 +16,8 @@ import type { CompilerHandle, WrongAttemptContext } from '@/components/Compiler'
 import type { Question, QuestionStatus } from '@/lib/types';
 import type { CurrentUser } from '@/lib/auth/user';
 import type { SolveReward } from '@/lib/tracking';
-import { getNextQuestion, getPrevQuestion } from '@/lib/questions';
+import { getNextQuestion, getPrevQuestion, splitPrompt } from '@/lib/questions';
 import { JS_STARTER_CODE, SQL_STARTER_CODE, STARTER_CODE } from '@/lib/config';
-import { parseSqlQuestion } from '@/lib/sql/parse';
 import {
   getAllStatuses,
   clearGuestData,
@@ -119,14 +118,14 @@ export default function HomeClient({
   const savedCode = useMemo(() => {
     const saved = getSavedCode(selectedId);
     if (saved) return saved;
-    if (selectedQuestion?.type === 'fill_in_the_blank') {
-      if (selectedQuestion.language === 'sql') {
-        const { templateAfter } = parseSqlQuestion(selectedQuestion.question);
-        if (templateAfter) return templateAfter;
-      } else {
-        const sepIdx = selectedQuestion.question.indexOf('\n\n');
-        if (sepIdx !== -1) return selectedQuestion.question.slice(sepIdx + 2);
-      }
+    // fill_in_the_blank (blank template) and spot_the_bug (buggy code) pre-load
+    // their code into the editor so the learner edits and runs it.
+    if (
+      selectedQuestion &&
+      (selectedQuestion.type === 'fill_in_the_blank' || selectedQuestion.type === 'spot_the_bug')
+    ) {
+      const { code } = splitPrompt(selectedQuestion);
+      if (code) return code;
     }
     return defaultStarterCode;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -250,8 +249,6 @@ export default function HomeClient({
         canSubmit={
           selectedQuestion?.type === 'output_prediction' || selectedQuestion?.type === 'what_is_the_result'
             ? true
-            : selectedQuestion?.type === 'fill_in_the_blank'
-            ? bridgeReady && compilerStatus === 'idle'
             : hasRun && bridgeReady && compilerStatus === 'idle'
         }
         statuses={statuses}

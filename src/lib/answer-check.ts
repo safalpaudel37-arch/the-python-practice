@@ -40,9 +40,12 @@ export async function findQuestionLanguage(id: string): Promise<Language | null>
 /**
  * Server-side answer check (replaces the Supabase `check_answer` RPC).
  *
- * - `fill_in_the_blank`: case-insensitive trimmed token match against answer / alternative_answer.
- * - Everything else: normalised stdout match against expected_output (falling back to answer),
- *   also checking alternative_answer.
+ * Compares the user's normalised stdout against `expected_output` (falling back to
+ * `answer`), also checking `alternative_answer`. This is the Python path for
+ * `write_the_code`, `fill_in_the_blank`, and `spot_the_bug` (all run the user's code
+ * and are graded by output). JS/SQL grade client-side and send `correct` directly,
+ * so they never reach here. Prediction types (`output_prediction`,
+ * `what_is_the_result`) compare the typed answer against `expected_output`/`answer`.
  */
 export async function checkAnswerServer(
   questionId: string,
@@ -51,13 +54,6 @@ export async function checkAnswerServer(
 ): Promise<boolean> {
   const q = await findQuestion(questionId, language);
   if (!q) return false;
-
-  if (q.type === 'fill_in_the_blank') {
-    const norm = userAnswer.trim().toLowerCase();
-    if (norm === q.answer.trim().toLowerCase()) return true;
-    if (q.alternative_answer && norm === q.alternative_answer.trim().toLowerCase()) return true;
-    return false;
-  }
 
   const expected = q.expected_output ?? q.answer;
   if (!expected) return false;

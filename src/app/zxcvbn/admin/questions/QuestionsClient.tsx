@@ -355,11 +355,9 @@ export function QuestionsClient({ questions }: { questions: AdminQuestion[] }) {
                     onChange={(e) => set('answer')(e.target.value)}
                     rows={3}
                     placeholder={
-                      form.type === 'fill_in_the_blank'
-                        ? 'the token that fills the blank'
-                        : form.type.includes('output') || form.type === 'what_is_the_result'
-                          ? 'the exact expected output'
-                          : 'reference solution code'
+                      form.type.includes('output') || form.type === 'what_is_the_result'
+                        ? 'the exact expected output'
+                        : 'full solution code'
                     }
                     className="w-full resize-y rounded-[10px] bg-code-bg p-3 font-mono text-[12.5px] text-code-ink outline-none placeholder:text-white/30"
                   />
@@ -382,7 +380,10 @@ export function QuestionsClient({ questions }: { questions: AdminQuestion[] }) {
                   />
                 </Field>
 
-                {form.language === 'python' && form.type === 'write_the_code' && (
+                {form.language === 'python' &&
+                  (form.type === 'write_the_code' ||
+                    form.type === 'fill_in_the_blank' ||
+                    form.type === 'spot_the_bug') && (
                   <Field label="Expected output (stdout of the solution — used by the checker)" tall>
                     <textarea
                       value={form.expected_output}

@@ -69,46 +69,11 @@ function mkLine(text: string, type: OutputLine["type"]): OutputLine {
 }
 
 /**
- * Extract what the user typed in place of each blank marker (3+ underscores)
- * in the question template, then join multiple fills with ", ".
+ * Types graded by running the user's code and comparing its output — for JS/SQL
+ * these are checked client-side against a live run of the reference `answer`
+ * (there is no pre-computed expected_output). Python uses the server path instead.
  */
-function extractFilledToken(questionText: string, userCode: string): string {
-  const userLines = userCode.split('\n');
-  const tokens: string[] = [];
-
-  for (const qLine of questionText.split('\n')) {
-    const match = qLine.match(/_{3,}/);
-    if (!match) continue;
-
-    const blank = match[0];
-    const blankIdx = qLine.indexOf(blank);
-    const before = qLine.slice(0, blankIdx);
-    const after = qLine.slice(blankIdx + blank.length);
-
-    for (const uLine of userLines) {
-      if (before && !uLine.includes(before)) continue;
-
-      const startIdx = before ? uLine.indexOf(before) + before.length : 0;
-      const remaining = uLine.slice(startIdx);
-
-      let token: string;
-      if (after) {
-        const afterIdx = remaining.indexOf(after);
-        if (afterIdx === -1) continue;
-        token = remaining.slice(0, afterIdx).trim();
-      } else {
-        token = remaining.trimEnd();
-      }
-
-      if (token) {
-        tokens.push(token);
-        break;
-      }
-    }
-  }
-
-  return tokens.join(', ');
-}
+const CLIENT_CHECK_TYPES = new Set(['write_the_code', 'fill_in_the_blank', 'spot_the_bug']);
 
 const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
   { question, initialCode, onAttempt, onStatusChange, hintProps },
@@ -278,8 +243,10 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
     const q = currentQuestionRef.current;
     if (!onAttemptRef.current) return;
 
-    // Client-side check for SQL and JS write_the_code — no pre-computed expected_output
-    if (q && q.type === 'write_the_code' && (q.language === 'sql' || q.language === 'javascript')) {
+    // Client-side check for SQL and JS — run the reference answer and compare its
+    // output (no pre-computed expected_output). Covers write_the_code,
+    // fill_in_the_blank, and spot_the_bug — all graded by running the user's code.
+    if (q && CLIENT_CHECK_TYPES.has(q.type) && (q.language === 'sql' || q.language === 'javascript')) {
       const setupCode = q.language === 'sql' ? parseSqlQuestion(q.question).setupSql : undefined;
       bridgeRef.current?.checkAnswer(codeRef.current, q.answer, setupCode || undefined).then(async (correct) => {
         const reward = await reportAttempt(q.id, q.language, correct);
@@ -292,10 +259,10 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
     }
 
     if (q && AUTO_CHECK_TYPES.has(q.type)) {
+      // Python write_the_code / fill_in_the_blank / spot_the_bug are graded by
+      // stdout; prediction types by the typed answer.
       const userAnswer =
-        q.type === 'fill_in_the_blank'
-          ? extractFilledToken(q.question, codeRef.current)
-          : q.type === 'output_prediction' || q.type === 'what_is_the_result'
+        q.type === 'output_prediction' || q.type === 'what_is_the_result'
           ? userPredictionRef.current.trim()
           : normalizeOutput(lastStdoutRef.current);
 
@@ -308,8 +275,9 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
         .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
         .then((data: { correct?: boolean; reward?: SolveReward | null }) => {
           const passed = data.correct === true;
+          const isPrediction = q.type === 'output_prediction' || q.type === 'what_is_the_result';
           onAttemptRef.current?.(passed, passed ? undefined : {
-            userCode: q.type === 'write_the_code' ? codeRef.current : '',
+            userCode: isPrediction ? '' : codeRef.current,
             userAnswer,
           }, data.reward ?? null);
         })
@@ -390,8 +358,6 @@ const Compiler = forwardRef<CompilerHandle, CompilerProps>(function Compiler(
         canSubmit={
           isPredictionType
             ? canSubmitPrediction
-            : question?.type === 'fill_in_the_blank'
-            ? bridgeReady && status === 'idle'
             : hasRun && bridgeReady && status === 'idle'
         }
         hintProps={hintProps}

@@ -109,7 +109,9 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
     const q = questionRef.current;
     if (!onAttemptRef.current || !q) return;
 
-    if (q.type === 'write_the_code') {
+    // write_the_code, fill_in_the_blank, and spot_the_bug are all graded by running
+    // the user's SQL and the reference answer against the setup, then comparing.
+    if (q.type === 'write_the_code' || q.type === 'fill_in_the_blank' || q.type === 'spot_the_bug') {
       const { setupSql } = parseSqlQuestion(q.question);
       try {
         const correct = await checkAnswer(codeRef.current, q.answer, setupSql || undefined);
@@ -125,7 +127,7 @@ const SqlCompiler = forwardRef<CompilerHandle, Props>(function SqlCompiler(
       return;
     }
 
-    // For other question types that have a stored expected output
+    // Prediction types (output_prediction / what_is_the_result) with a stored expected output
     fetch('/api/check-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

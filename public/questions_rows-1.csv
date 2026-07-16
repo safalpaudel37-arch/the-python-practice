@@ -1,0 +1,1695 @@
+id,tier,topic,type,question,answer,alternative_answer,explanation,created_at,expected_output,language
+E001,expert,property,write_the_code,"Write a class Temperature with a private attribute _celsius. Add a property celsius that returns _celsius, and a setter that raises ValueError(""Temperature below -273.15 is not possible"") if the value is below -273.15. Create an instance, set celsius to 25, then print it.","class Temperature:
+    def __init__(self, celsius=0):
+        self.celsius = celsius
+
+    @property
+    def celsius(self):
+        return self._celsius
+
+    @celsius.setter
+    def celsius(self, value):
+        if value < -273.15:
+            raise ValueError(""Temperature below -273.15 is not possible"")
+        self._celsius = value
+
+t = Temperature()
+t.celsius = 25
+print(t.celsius)",,"@property turns a method into a read-only attribute. Pairing it with @<name>.setter allows controlled writes. The setter validates the value before storing it in the private _celsius attribute. Note that self.celsius = celsius in __init__ routes through the setter, so validation runs at construction time too.",2026-05-08 16:11:13.914963+00,25,python
+E002,expert,classmethod,write_the_code,"Write a class Point with __init__(x, y). Add a class method from_string(cls, s) that parses a string in the format ""x,y"" and returns a new Point. Create a Point from the string ""3,4"" and print its x and y attributes.","class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    @classmethod
+    def from_string(cls, s):
+        x, y = s.split("","")
+        return cls(int(x), int(y))
+
+p = Point.from_string(""3,4"")
+print(p.x, p.y)",,@classmethod receives the class (cls) as its first argument instead of an instance. This makes it a natural alternative constructor — it builds a new instance from a different input format. Using cls(...) instead of Point(...) ensures that subclasses inherit the constructor correctly.,2026-05-08 16:11:13.914963+00,3 4,python
+E003,expert,staticmethod,write_the_code,"Write a class MathUtils with a static method is_even(n) that returns True if n is even, False otherwise. Call MathUtils.is_even(4) and MathUtils.is_even(7) and print both results.","class MathUtils:
+    @staticmethod
+    def is_even(n):
+        return n % 2 == 0
+
+print(MathUtils.is_even(4))
+print(MathUtils.is_even(7))",,"@staticmethod creates a method that belongs to the class namespace but receives neither self nor cls. Use it for utility functions that are logically related to the class but do not need access to instance or class state. They can be called on the class directly, making the intent clear.",2026-05-08 16:11:13.914963+00,"True
+False",python
+E004,expert,dataclasses,write_the_code,"Using @dataclass, write a class Product with fields name (str), price (float), and quantity (int) with a default of 1. Create Product(""Widget"", 9.99) and print it.","from dataclasses import dataclass
+
+@dataclass
+class Product:
+    name: str
+    price: float
+    quantity: int = 1
+
+p = Product(""Widget"", 9.99)
+print(p)",,"@dataclass auto-generates __init__, __repr__, and __eq__ from the annotated class attributes. Fields with defaults must come after fields without. The generated __repr__ produces a readable string like Product(name='Widget', price=9.99, quantity=1) automatically.",2026-05-08 16:11:13.914963+00,"Product(name='Widget', price=9.99, quantity=1)",python
+E005,expert,dataclasses,write_the_code,"Write a @dataclass class Circle with a field radius (float) using field(default=1.0). Add a __post_init__ method that raises ValueError(""Radius must be positive"") if radius is not positive. Add a property area that returns math.pi * radius ** 2. Create Circle(3.0) and print its area rounded to 2 decimal places.","import math
+from dataclasses import dataclass, field
+
+@dataclass
+class Circle:
+    radius: float = field(default=1.0)
+
+    def __post_init__(self):
+        if self.radius <= 0:
+            raise ValueError(""Radius must be positive"")
+
+    @property
+    def area(self):
+        return math.pi * self.radius ** 2
+
+c = Circle(3.0)
+print(round(c.area, 2))",,field() is used when a default value needs extra configuration metadata. __post_init__ runs automatically after __init__ and is the right place for validation that depends on the fully constructed instance. Adding @property to a dataclass works exactly like a regular class — @dataclass only generates the __init__ plumbing.,2026-05-08 16:11:13.914963+00,28.27,python
+E006,expert,__slots__,write_the_code,"Write a class Vector2D using __slots__ = (""x"", ""y"") with __init__(x, y). Add a method magnitude() that returns (x**2 + y**2) ** 0.5. Create Vector2D(3, 4) and print its magnitude.","class Vector2D:
+    __slots__ = (""x"", ""y"")
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def magnitude(self):
+        return (self.x ** 2 + self.y ** 2) ** 0.5
+
+v = Vector2D(3, 4)
+print(v.magnitude())",,"__slots__ replaces the per-instance __dict__ with a fixed-size structure, reducing memory usage significantly when many instances are created. The trade-off is that you cannot add new attributes at runtime. Each slot name becomes a descriptor on the class.",2026-05-08 16:11:13.914963+00,5.0,python
+E007,expert,advanced_decorators,write_the_code,"Write a decorator factory repeat(n) that makes a decorated function run n times. Decorate a function say(msg) that prints the message. Apply @repeat(3) to say and call say(""Hi"").","def repeat(n):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for _ in range(n):
+                func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+@repeat(3)
+def say(msg):
+    print(msg)
+
+say(""Hi"")",,"A parametrized decorator adds an outer factory layer: repeat(n) returns the actual decorator, which returns the wrapper. This gives three levels of nesting — factory -> decorator -> wrapper. The factory captures n in a closure, so the decorator remembers how many times to repeat each call.",2026-05-08 16:11:13.914963+00,"Hi
+Hi
+Hi",python
+E008,expert,advanced_decorators,write_the_code,"Write a class-based decorator CallCounter that tracks how many times a decorated function has been called. Store the count in a count attribute and call the original function on each invocation. Decorate a function greet(name) that prints ""Hello, <name>"". Call it twice, then print greet.count.","class CallCounter:
+    def __init__(self, func):
+        self.func = func
+        self.count = 0
+
+    def __call__(self, *args, **kwargs):
+        self.count += 1
+        return self.func(*args, **kwargs)
+
+@CallCounter
+def greet(name):
+    print(f""Hello, {name}"")
+
+greet(""Alice"")
+greet(""Bob"")
+print(greet.count)",,"A class-based decorator implements __init__ (receives the function) and __call__ (invoked on each call). This is cleaner than a closure when the decorator needs mutable state. @CallCounter on greet replaces greet with a CallCounter instance, so greet.count gives direct access to the call counter.",2026-05-08 16:11:13.914963+00,"Hello, Alice
+Hello, Bob
+2",python
+E009,expert,generators,write_the_code,"Write a generator function accumulator() that yields the running total of values sent into it. The total starts at 0. Prime the generator with next(), then send the values 10, 20, and 5 one at a time, printing each yielded total.","def accumulator():
+    total = 0
+    while True:
+        value = yield total
+        total += value
+
+gen = accumulator()
+next(gen)
+print(gen.send(10))
+print(gen.send(20))
+print(gen.send(5))",,"send(value) resumes the generator and injects a value that becomes the result of the yield expression. Before send() can pass data, the generator must be advanced to the first yield with next() — this is called priming. Each loop iteration yields the running total, then waits for the next send() call.",2026-05-08 16:11:13.914963+00,"10
+30
+35",python
+E010,expert,generators,write_the_code,"Write a generator function chain(*iterables) that yields every item from each iterable in sequence using yield from. Call chain([1, 2], [3, 4], [5]) and print each yielded value on its own line.","def chain(*iterables):
+    for iterable in iterables:
+        yield from iterable
+
+for value in chain([1, 2], [3, 4], [5]):
+    print(value)",,"yield from delegates to a sub-iterable, yielding all its items as if they came from the outer generator. It is cleaner than a for loop with yield because it also correctly forwards send(), throw(), and close() calls through to the inner generator — important for coroutine chains.",2026-05-08 16:11:13.914963+00,"1
+2
+3
+4
+5",python
+E011,expert,async_await,write_the_code,"Write an async function fetch_data(name) that prints ""Fetching <name>..."", awaits asyncio.sleep(0), then returns ""<name>: done"". Write a main() async function that awaits fetch_data(""users"") and prints the result. Run main() with asyncio.run().","import asyncio
+
+async def fetch_data(name):
+    print(f""Fetching {name}..."")
+    await asyncio.sleep(0)
+    return f""{name}: done""
+
+async def main():
+    result = await fetch_data(""users"")
+    print(result)
+
+asyncio.run(main())",,"async def defines a coroutine. await suspends the current coroutine and gives control to the event loop, which can run other tasks. asyncio.sleep(0) is the minimal yield point — it lets other scheduled coroutines run without actually waiting. asyncio.run() creates a fresh event loop, runs the given coroutine to completion, then closes the loop.",2026-05-08 16:11:13.914963+00,"Fetching users...
+users: done",python
+E012,expert,abc,write_the_code,"Using abc.ABC and @abstractmethod, write an abstract base class Shape with an abstract method area() that returns a float. Write concrete subclasses Rectangle(width, height) and Circle(radius) that each implement area(). Create one of each and print their areas rounded to 2 decimal places.","from abc import ABC, abstractmethod
+import math
+
+class Shape(ABC):
+    @abstractmethod
+    def area(self) -> float:
+        pass
+
+class Rectangle(Shape):
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+
+    def area(self):
+        return self.width * self.height
+
+class Circle(Shape):
+    def __init__(self, radius):
+        self.radius = radius
+
+    def area(self):
+        return math.pi * self.radius ** 2
+
+print(round(Rectangle(4, 5).area(), 2))
+print(round(Circle(3).area(), 2))",,ABCs enforce a contract: any class that inherits from Shape without implementing area() raises TypeError when instantiated. @abstractmethod marks the method as required. The ABC metaclass handles the enforcement automatically — you do not need custom __init_subclass__ logic.,2026-05-08 16:11:13.914963+00,"20
+28.27",python
+E013,expert,multiple_inheritance,write_the_code,"Write three classes: Flyable with move() returning ""Flying"", Swimmable with move() returning ""Swimming"", and Duck that inherits from both (Flyable first). Add a describe() method to Duck that returns ""I am a duck that can: "" + super().move(). Create a Duck instance and print move() and describe().","class Flyable:
+    def move(self):
+        return ""Flying""
+
+class Swimmable:
+    def move(self):
+        return ""Swimming""
+
+class Duck(Flyable, Swimmable):
+    def describe(self):
+        return ""I am a duck that can: "" + super().move()
+
+d = Duck()
+print(d.move())
+print(d.describe())",,"Python's MRO (Method Resolution Order) determines which method is used when multiple parent classes define the same name. For Duck(Flyable, Swimmable) the MRO is Duck -> Flyable -> Swimmable -> object. So both d.move() and super().move() inside Duck resolve to Flyable.move(). Use Duck.__mro__ to inspect the full chain.",2026-05-08 16:11:13.914963+00,"Flying
+I am a duck that can: Flying",python
+E014,expert,type_hints,write_the_code,"Write a typed function merge_dicts that accepts two dicts of type dict[str, int] and returns a new dict[str, int] where values for shared keys are summed. Add full type annotations to the parameters and return value. Test it with {""a"": 1, ""b"": 2} and {""b"": 3, ""c"": 4} and print the result.","def merge_dicts(d1: dict[str, int], d2: dict[str, int]) -> dict[str, int]:
+    result = dict(d1)
+    for key, value in d2.items():
+        result[key] = result.get(key, 0) + value
+    return result
+
+print(merge_dicts({""a"": 1, ""b"": 2}, {""b"": 3, ""c"": 4}))",,"Type hints (PEP 484) annotate parameters and return values with expected types. dict[str, int] is a built-in generic syntax available from Python 3.9+. Hints are not enforced at runtime — they are documentation for readers and checked by static tools like mypy or pyright. dict(d1) copies the first dict to avoid mutating the original.",2026-05-08 16:11:13.914963+00,"{'a': 1, 'b': 5, 'c': 4}",python
+E015,expert,metaclasses,write_the_code,"Write a metaclass UpperCaseMeta that converts all non-dunder attribute names in a class to uppercase when the class is created. Apply it to a class Config that sets debug = True and version = ""1.0"". Print Config.DEBUG and Config.VERSION.","class UpperCaseMeta(type):
+    def __new__(mcs, name, bases, namespace):
+        upper_namespace = {}
+        for key, value in namespace.items():
+            if key.startswith(""__""):
+                upper_namespace[key] = value
+            else:
+                upper_namespace[key.upper()] = value
+        return super().__new__(mcs, name, bases, upper_namespace)
+
+class Config(metaclass=UpperCaseMeta):
+    debug = True
+    version = ""1.0""
+
+print(Config.DEBUG)
+print(Config.VERSION)",,A metaclass controls how a class is created. type is the default metaclass. Overriding __new__ lets you inspect and transform the class namespace before the class object is built. Dunder names are copied as-is while all other names are uppercased. super().__new__() then builds the actual class with the modified namespace.,2026-05-08 16:11:13.914963+00,"True
+1.0",python
+E016,expert,property,fill_in_the_blank,"Fill in the two blanks to complete the read-write property, then print the side after setting it:
+
+class Square:
+    def __init__(self, side):
+        self._side = side
+
+    @______
+    def side(self):
+        return self._side
+
+    @side.______
+    def side(self, value):
+        if value < 0:
+            raise ValueError(""Side must be non-negative"")
+        self._side = value
+
+s = Square(4)
+s.side = 10
+print(s.side)","class Square:
+    def __init__(self, side):
+        self._side = side
+
+    @property
+    def side(self):
+        return self._side
+
+    @side.setter
+    def side(self, value):
+        if value < 0:
+            raise ValueError(""Side must be non-negative"")
+        self._side = value
+
+s = Square(4)
+s.side = 10
+print(s.side)",,"@property makes the method a getter — it can be read like an attribute. @<name>.setter registers a setter for the same property name. If only @property is used, the attribute is read-only and assignment raises AttributeError.",2026-05-08 16:12:21.986256+00,10,python
+E017,expert,classmethod,fill_in_the_blank,"Fill in the blank so from_fahrenheit is a class method, then print the converted temperature:
+
+class Celsius:
+    def __init__(self, temp):
+        self.temp = temp
+
+    @______
+    def from_fahrenheit(cls, f):
+        return cls((f - 32) * 5 / 9)
+
+c = Celsius.from_fahrenheit(212)
+print(c.temp)","class Celsius:
+    def __init__(self, temp):
+        self.temp = temp
+
+    @classmethod
+    def from_fahrenheit(cls, f):
+        return cls((f - 32) * 5 / 9)
+
+c = Celsius.from_fahrenheit(212)
+print(c.temp)",,@classmethod passes the class as the first argument (cls) instead of the instance. It is the standard way to write alternative constructors. Using cls(...) instead of Celsius(...) ensures that subclasses inherit the factory method correctly.,2026-05-08 16:12:21.986256+00,100.0,python
+E018,expert,staticmethod,fill_in_the_blank,"Fill in the blank so is_palindrome can be called without creating an instance, then print the result:
+
+class StringUtils:
+    @______
+    def is_palindrome(s):
+        return s == s[::-1]
+
+print(StringUtils.is_palindrome(""racecar""))","class StringUtils:
+    @staticmethod
+    def is_palindrome(s):
+        return s == s[::-1]
+
+print(StringUtils.is_palindrome(""racecar""))",,"@staticmethod removes both self and cls from the signature. It is a plain function grouped inside the class for organisational purposes. It can be called as StringUtils.is_palindrome(""racecar"") or on an instance — either way, no class or instance is passed automatically.",2026-05-08 16:12:21.986256+00,True,python
+E019,expert,dataclasses,fill_in_the_blank,"Fill in the two blanks to define the dataclass, then print an instance:
+
+from dataclasses import ______
+
+@______
+class Employee:
+    name: str
+    department: str
+    salary: float = 50000.0
+
+e = Employee(""Alice"", ""Engineering"")
+print(e)","from dataclasses import dataclass
+
+@dataclass
+class Employee:
+    name: str
+    department: str
+    salary: float = 50000.0
+
+e = Employee(""Alice"", ""Engineering"")
+print(e)",,"dataclass is imported from the dataclasses module and used both as the import name and the decorator. @dataclass inspects annotated class attributes and auto-generates __init__, __repr__, and __eq__. Fields with defaults (salary) must be declared after fields without defaults.",2026-05-08 16:12:21.986256+00,"Employee(name='Alice', department='Engineering', salary=50000.0)",python
+E020,expert,__slots__,fill_in_the_blank,"Fill in the blank so instances use a fixed memory layout and reject attributes outside the declared set (assigning an undeclared attribute should raise AttributeError):
+
+class Node:
+    ______ = (""value"", ""next_node"")
+
+    def __init__(self, value):
+        self.value = value
+        self.next_node = None
+
+n = Node(42)
+try:
+    n.color = ""red""
+    print(""color set"")
+except AttributeError:
+    print(""blocked"")","class Node:
+    __slots__ = (""value"", ""next_node"")
+
+    def __init__(self, value):
+        self.value = value
+        self.next_node = None
+
+n = Node(42)
+try:
+    n.color = ""red""
+    print(""color set"")
+except AttributeError:
+    print(""blocked"")",,"Setting __slots__ to a tuple of attribute names tells Python to allocate a fixed-size structure instead of a per-instance __dict__. This reduces memory usage significantly when thousands of instances are created, as in a linked list. Only the declared slot names can be stored as attributes.",2026-05-08 16:12:21.986256+00,blocked,python
+E021,expert,advanced_decorators,fill_in_the_blank,"Fill in the two blanks so retry runs the function up to `times` times, then print the result:
+
+def retry(times):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for attempt in range(______):
+                try:
+                    return func(*args, **kwargs)
+                except Exception:
+                    if attempt == times - 1:
+                        raise
+        return wrapper
+    return ______
+
+attempts = []
+
+@retry(3)
+def flaky():
+    attempts.append(1)
+    if len(attempts) < 2:
+        raise ValueError(""fail"")
+    return ""ok""
+
+print(flaky())","def retry(times):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for attempt in range(times):
+                try:
+                    return func(*args, **kwargs)
+                except Exception:
+                    if attempt == times - 1:
+                        raise
+        return wrapper
+    return decorator
+
+attempts = []
+
+@retry(3)
+def flaky():
+    attempts.append(1)
+    if len(attempts) < 2:
+        raise ValueError(""fail"")
+    return ""ok""
+
+print(flaky())",,"The outer function retry(times) is the factory — it captures times and returns the real decorator. The loop retries up to times times. On the last attempt, the exception is re-raised so it propagates to the caller. The factory must return decorator (not wrapper), because the decorator still needs to wrap the function.",2026-05-08 16:12:21.986256+00,ok,python
+E022,expert,generators,fill_in_the_blank,"Fill in the two blanks so the generator receives a value from the caller:
+
+def echo():
+    while True:
+        received = ______
+        print(f""Got: {received}"")
+
+gen = echo()
+next(gen)
+gen.______(42)","def echo():
+    while True:
+        received = yield
+        print(f""Got: {received}"")
+
+gen = echo()
+next(gen)
+gen.send(42)",,"received = yield pauses the generator and makes the yielded value available to the caller. When send(42) is called, 42 becomes the value of the yield expression and is assigned to received. The generator must be primed with next() first — before the first yield is reached, send() cannot inject a value.",2026-05-08 16:12:21.986256+00,Got: 42,python
+E023,expert,generators,fill_in_the_blank,"Fill in the blank to recursively flatten a nested list, then print the flattened result:
+
+def flatten(nested):
+    for item in nested:
+        if isinstance(item, list):
+            ______ flatten(item)
+        else:
+            yield item
+
+print(list(flatten([1, [2, [3, 4]], 5])))","def flatten(nested):
+    for item in nested:
+        if isinstance(item, list):
+            yield from flatten(item)
+        else:
+            yield item
+
+print(list(flatten([1, [2, [3, 4]], 5])))",,"yield from <generator> delegates iteration to the sub-generator, forwarding all its yielded values to the outer caller. Here, flatten(item) returns a generator for the sub-list, and yield from streams all its items outward. Without yield from you would need an explicit for loop with yield.",2026-05-08 16:12:21.986256+00,"[1, 2, 3, 4, 5]",python
+E024,expert,async_await,fill_in_the_blank,"Fill in the two blanks to await the coroutine and run it:
+
+import asyncio
+
+async def hello():
+    ______ asyncio.sleep(1)
+    print(""Hello after 1 second"")
+
+asyncio.______(hello())","import asyncio
+
+async def hello():
+    await asyncio.sleep(1)
+    print(""Hello after 1 second"")
+
+asyncio.run(hello())",,"await suspends the coroutine and yields control to the event loop until the awaited coroutine completes. asyncio.run() is the entry point that creates an event loop, runs the given coroutine to completion, and then closes the loop. It should only be called once at the top level of your program.",2026-05-08 16:12:21.986256+00,Hello after 1 second,python
+E025,expert,abc,fill_in_the_blank,"Fill in the two blanks to declare an abstract method, then print the result of a concrete subclass:
+
+from abc import ABC, ______
+
+class Vehicle(ABC):
+    @______
+    def fuel_type(self) -> str:
+        pass
+
+class Car(Vehicle):
+    def fuel_type(self) -> str:
+        return ""petrol""
+
+print(Car().fuel_type())","from abc import ABC, abstractmethod
+
+class Vehicle(ABC):
+    @abstractmethod
+    def fuel_type(self) -> str:
+        pass
+
+class Car(Vehicle):
+    def fuel_type(self) -> str:
+        return ""petrol""
+
+print(Car().fuel_type())",,abstractmethod is imported from abc and used as both the import name and the decorator. Applying @abstractmethod marks a method as required — any concrete subclass that does not implement it will raise TypeError when instantiated. The ABC base class activates this enforcement.,2026-05-08 16:12:21.986256+00,petrol,python
+E026,expert,multiple_inheritance,fill_in_the_blank,"Fill in the blank using the recommended Python 3 style, then print the greeting:
+
+class A:
+    def greet(self):
+        return ""Hello from A""
+
+class B(A):
+    def greet(self):
+        return ______.greet() + "" and B""
+
+print(B().greet())","class A:
+    def greet(self):
+        return ""Hello from A""
+
+class B(A):
+    def greet(self):
+        return super().greet() + "" and B""
+
+print(B().greet())",,"super() returns a proxy object that delegates method calls to the next class in the MRO. In Python 3, super() without arguments automatically uses the enclosing class (B) and the current instance (self). This is cleaner and less error-prone than the Python 2 style super(B, self), and it supports cooperative multiple inheritance correctly.",2026-05-08 16:12:21.986256+00,Hello from A and B,python
+E027,expert,type_hints,fill_in_the_blank,"Fill in the two blanks to express that the return value is either a string or None, then print both results:
+
+from typing import ______
+
+def find_user(user_id: int) -> ______[str]:
+    if user_id == 1:
+        return ""Alice""
+    return None
+
+print(find_user(1))
+print(find_user(2))","from typing import Optional
+
+def find_user(user_id: int) -> Optional[str]:
+    if user_id == 1:
+        return ""Alice""
+    return None
+
+print(find_user(1))
+print(find_user(2))",,"Optional[str] from the typing module means the value can be str or None — it is shorthand for Union[str, None]. In Python 3.10+ you can write str | None directly without importing anything. Optional is particularly useful for functions that may not always find a result.",2026-05-08 16:12:21.986256+00,"Alice
+None",python
+E028,expert,property,output_prediction,"What is the output?
+
+class Temp:
+    def __init__(self, c):
+        self.celsius = c
+
+    @property
+    def celsius(self):
+        return self._c
+
+    @celsius.setter
+    def celsius(self, v):
+        self._c = v
+        print(f""Set to {v}"")
+
+t = Temp(20)
+t.celsius = 35
+print(t.celsius)","Set to 20
+Set to 35
+35",,"self.celsius = c inside __init__ routes through the property setter, not direct attribute assignment. So ""Set to 20"" prints during construction. Then t.celsius = 35 also calls the setter, printing ""Set to 35"". Finally, print(t.celsius) calls the getter and prints 35.",2026-05-08 16:12:21.986256+00,"Set to 20
+Set to 35
+35",python
+E029,expert,classmethod_staticmethod,output_prediction,"What is the output?
+
+class Counter:
+    count = 0
+
+    @classmethod
+    def increment(cls):
+        cls.count += 1
+
+    @staticmethod
+    def reset(obj):
+        obj.count = 0
+
+Counter.increment()
+Counter.increment()
+print(Counter.count)
+Counter.reset(Counter)
+print(Counter.count)","2
+0",,"increment() is a classmethod — cls.count += 1 modifies the class attribute. After two calls, Counter.count is 2. reset() is a staticmethod that accepts an explicit object and sets its count to 0. Passing Counter resets the class attribute to 0. Both values are then printed.",2026-05-08 16:12:21.986256+00,"2
+0",python
+E030,expert,multiple_inheritance,output_prediction,"What is the output?
+
+class X:
+    def hello(self):
+        print(""X"")
+
+class Y(X):
+    def hello(self):
+        super().hello()
+        print(""Y"")
+
+class Z(Y):
+    def hello(self):
+        super().hello()
+        print(""Z"")
+
+Z().hello()","X
+Y
+Z",,"Z().hello() calls super().hello() which is Y.hello(). Y.hello() calls super().hello() which is X.hello(), printing ""X"". Execution returns to Y.hello() which prints ""Y"". Execution returns to Z.hello() which prints ""Z"". The MRO is Z -> Y -> X -> object, and super() follows it in sequence.",2026-05-08 16:12:21.986256+00,"X
+Y
+Z",python
+E031,expert,generators,output_prediction,"What is the output?
+
+def counter():
+    n = 0
+    while True:
+        step = yield n
+        n += step if step is not None else 1
+
+gen = counter()
+print(next(gen))
+print(next(gen))
+print(gen.send(5))
+print(next(gen))","0
+1
+6
+7",,"next(gen) primes and yields 0. next(gen) sends None so step is None, n += 1 = 1, yields 1. gen.send(5) sends step=5, n = 1+5 = 6, yields 6. next(gen) sends None so step is None, n += 1 = 7, yields 7.",2026-05-08 16:12:21.986256+00,"0
+1
+6
+7",python
+E032,expert,dataclasses,output_prediction,"What is the output?
+
+from dataclasses import dataclass
+
+@dataclass
+class Book:
+    title: str
+    pages: int
+    in_print: bool = True
+
+print(Book(""Dune"", 412))","Book(title='Dune', pages=412, in_print=True)",,"@dataclass auto-generates __repr__ that includes all fields with their values. The format is ClassName(field1=value1, field2=value2, ...). String values are quoted, booleans appear as True/False. The default value for in_print is included because it is part of the instance state.",2026-05-08 16:12:21.986256+00,"Book(title='Dune', pages=412, in_print=True)",python
+E033,expert,async_await,output_prediction,"What is the output?
+
+import asyncio
+
+async def task(name):
+    await asyncio.sleep(0)
+    return name.upper()
+
+async def main():
+    results = await asyncio.gather(task(""alpha""), task(""beta""))
+    for r in results:
+        print(r)
+
+asyncio.run(main())","ALPHA
+BETA",,"asyncio.gather() runs coroutines concurrently and returns a list of results in the same order as the input coroutines, regardless of completion order. Both tasks sleep for 0 seconds (a yield point only), then return their uppercased name. Results are printed in input order: ALPHA then BETA.",2026-05-08 16:12:21.986256+00,"ALPHA
+BETA",python
+E034,expert,advanced_decorators,output_prediction,"What is the output?
+
+def tag(name):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            result = func(*args, **kwargs)
+            return f""<{name}>{result}</{name}>""
+        return wrapper
+    return decorator
+
+@tag(""b"")
+@tag(""i"")
+def text():
+    return ""hello""
+
+print(text())",<b><i>hello</i></b>,,"Decorators are applied bottom-up: @tag(""i"") is applied first, wrapping text() to produce <i>hello</i>. Then @tag(""b"") wraps that to produce <b><i>hello</i></b>. This is equivalent to text = tag(""b"")(tag(""i"")(text)).",2026-05-08 16:12:21.986256+00,<b><i>hello</i></b>,python
+E035,expert,property,spot_the_bug,"This code raises an AttributeError. Find and fix the bug so it prints 10.
+
+class Box:
+    @property
+    def width(self):
+        return self._width
+
+b = Box()
+b.width = 10
+print(b.width)","class Box:
+    @property
+    def width(self):
+        return self._width
+
+    @width.setter
+    def width(self, value):
+        self._width = value
+
+b = Box()
+b.width = 10
+print(b.width)",,A property without a setter is read-only. Trying to assign to it raises AttributeError: can't set attribute. The fix is to add a @width.setter method that writes the value to the backing private attribute _width.,2026-05-08 16:12:21.986256+00,10,python
+E036,expert,multiple_inheritance,spot_the_bug,"D().hello() should run hello() on every class in the MRO via cooperative super() calls, but B and C call A.hello directly, so C is skipped. Find and fix the bug so all classes run.
+
+class A:
+    def hello(self):
+        print(""A"")
+
+class B(A):
+    def hello(self):
+        A.hello(self)
+        print(""B"")
+
+class C(A):
+    def hello(self):
+        A.hello(self)
+        print(""C"")
+
+class D(B, C):
+    def hello(self):
+        super().hello()
+
+D().hello()","class A:
+    def hello(self):
+        print(""A"")
+
+class B(A):
+    def hello(self):
+        super().hello()
+        print(""B"")
+
+class C(A):
+    def hello(self):
+        super().hello()
+        print(""C"")
+
+class D(B, C):
+    def hello(self):
+        super().hello()
+
+D().hello()",,"The MRO for D is D -> B -> C -> A -> object. Hard-coding A.hello(self) in B skips C entirely and calls A twice. Using super() in B and C follows the MRO cooperatively: D calls B, B calls C via super(), C calls A via super(). All three print statements fire in the correct order.",2026-05-08 16:12:21.986256+00,"A
+C
+B",python
+E037,expert,dataclasses,spot_the_bug,"This code raises a ValueError from dataclasses. Find and fix the bug so it prints the playlist.
+
+from dataclasses import dataclass
+from typing import List
+
+@dataclass
+class Playlist:
+    name: str
+    tracks: List[str] = []
+
+p = Playlist(""Road Trip"")
+p.tracks.append(""Song A"")
+print(p)","from dataclasses import dataclass, field
+from typing import List
+
+@dataclass
+class Playlist:
+    name: str
+    tracks: List[str] = field(default_factory=list)
+
+p = Playlist(""Road Trip"")
+p.tracks.append(""Song A"")
+print(p)",,"Mutable defaults (lists, dicts, sets) are forbidden in dataclasses because the same object would be shared across all instances — the classic Python mutable-default footgun. The fix is default_factory=list, which calls list() to create a fresh list for each new Playlist instance.",2026-05-08 16:12:21.986256+00,"Playlist(name='Road Trip', tracks=['Song A'])",python
+E038,expert,__slots__,spot_the_bug,"Assigning p.color raises AttributeError because ""color"" is not in __slots__. Fix the bug so the color can be set, then print it.
+
+class Pixel:
+    __slots__ = (""x"", ""y"")
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+p = Pixel(1, 2)
+p.color = ""red""
+print(p.color)","class Pixel:
+    __slots__ = (""x"", ""y"", ""color"")
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+p = Pixel(1, 2)
+p.color = ""red""
+print(p.color)",,"__slots__ removes the per-instance __dict__, so only the declared slots (x and y) can be stored as instance attributes. Attempting to set any other attribute raises AttributeError. To allow arbitrary attributes alongside slots, you can include ""__dict__"" in the __slots__ tuple.",2026-05-08 16:12:21.986256+00,red,python
+E039,expert,async_await,spot_the_bug,"This async function prints a coroutine object instead of ""Alice"". Find and fix the bug.
+
+import asyncio
+
+async def get_name():
+    return ""Alice""
+
+async def main():
+    name = get_name()
+    print(name)
+
+asyncio.run(main())","import asyncio
+
+async def get_name():
+    return ""Alice""
+
+async def main():
+    name = await get_name()
+    print(name)
+
+asyncio.run(main())",,"Calling an async function without await does not run it — it returns a coroutine object. You must await the coroutine to execute it and get its return value. Without await, name holds something like <coroutine object get_name at 0x...> and Python emits a RuntimeWarning: coroutine 'get_name' was never awaited.",2026-05-08 16:12:21.986256+00,Alice,python
+E040,expert,metaclasses,what_is_the_result,"What is the output of this code?
+
+class Meta(type):
+    def __new__(mcs, name, bases, namespace):
+        namespace[""created_by""] = ""Meta""
+        return super().__new__(mcs, name, bases, namespace)
+
+class MyClass(metaclass=Meta):
+    pass
+
+print(MyClass.created_by)
+print(type(MyClass))","Meta
+<class '__main__.Meta'>",,"Meta.__new__ is called when MyClass is being built. It injects created_by into the class namespace before construction, so MyClass.created_by == ""Meta"". type(MyClass) returns the metaclass of MyClass, which is Meta — not the built-in type — because metaclass=Meta was specified. Metaclasses are classes of classes.",2026-05-08 16:12:21.986256+00,"Meta
+<class '__main__.Meta'>",python
+H001,hard,decorators,write_the_code,"Write a decorator called logger that prints ""Calling <function name>"" before a function runs and ""Done"" after. Apply it to a function add(a, b) that returns a + b. Call add(2, 3) and print its return value.","def logger(func):
+    def wrapper(*args, **kwargs):
+        print(f""Calling {func.__name__}"")
+        result = func(*args, **kwargs)
+        print(""Done"")
+        return result
+    return wrapper
+
+@logger
+def add(a, b):
+    return a + b
+
+print(add(2, 3))",,A decorator is a function that takes another function as an argument and returns a new wrapper function that adds behavior before and/or after the original call. The wrapper uses *args and **kwargs so it can forward any arguments to the original. func.__name__ gives the original function's name string.,2026-05-08 16:09:43.223008+00,"Calling add
+Done
+5",python
+H002,hard,generators,write_the_code,Write a generator function countdown(n) that yields integers from n down to 1. Iterate over countdown(5) and print each value on its own line.,"def countdown(n):
+    while n >= 1:
+        yield n
+        n -= 1
+
+for num in countdown(5):
+    print(num)",,"A generator function uses yield instead of return to produce a sequence of values one at a time. Each time next() is called (implicitly by a for loop), execution resumes right after the last yield. This makes generators memory-efficient because they produce values lazily instead of building a full list upfront.",2026-05-08 16:09:43.223008+00,"5
+4
+3
+2
+1",python
+H003,hard,context_managers,write_the_code,"Use @contextlib.contextmanager to write a context manager called tag(name) that prints ""<name>"" on enter and ""</name>"" on exit. Use it with a with block that prints ""Hello"" — where name is ""div"".","from contextlib import contextmanager
+
+@contextmanager
+def tag(name):
+    print(f""<{name}>"")
+    yield
+    print(f""</{name}>"")
+
+with tag(""div""):
+    print(""Hello"")",,"@contextlib.contextmanager converts a generator function into a context manager. Everything before yield runs as __enter__ logic, the yielded value (if any) is bound by as, and everything after yield runs as __exit__ logic. This is simpler than writing a full class with __enter__ and __exit__.",2026-05-08 16:09:43.223008+00,"<div>
+Hello
+</div>",python
+H004,hard,error_handling,write_the_code,"Write a function safe_divide(a, b) that tries to divide a by b. If b is zero, catch the ZeroDivisionError and return the string ""Cannot divide by zero"". Use a finally block to always print ""Operation complete"". Call safe_divide(10, 0) and print its return value.","def safe_divide(a, b):
+    try:
+        return a / b
+    except ZeroDivisionError:
+        return ""Cannot divide by zero""
+    finally:
+        print(""Operation complete"")
+
+print(safe_divide(10, 0))",,The try block attempts the risky operation. The except clause catches a specific error type and provides a fallback return value. The finally clause always executes — even when a return is reached inside try or except — making it ideal for cleanup or status messages.,2026-05-08 16:09:43.223008+00,"Operation complete
+Cannot divide by zero",python
+H005,hard,oop_basics,write_the_code,"Write a class BankAccount with __init__(owner, balance=0), a deposit(amount) method that adds to the balance, and a withdraw(amount) method that subtracts from the balance but raises ValueError(""Insufficient funds"") if the amount exceeds the balance. Create an account, deposit 100, withdraw 40, and print the balance.","class BankAccount:
+    def __init__(self, owner, balance=0):
+        self.owner = owner
+        self.balance = balance
+
+    def deposit(self, amount):
+        self.balance += amount
+
+    def withdraw(self, amount):
+        if amount > self.balance:
+            raise ValueError(""Insufficient funds"")
+        self.balance -= amount
+
+account = BankAccount(""Alice"")
+account.deposit(100)
+account.withdraw(40)
+print(account.balance)",,"__init__ is the constructor that sets up instance attributes via self. Instance methods receive self as their first argument, which refers to the object being operated on. Raising ValueError with a descriptive message is the standard Python pattern for signalling invalid operations.",2026-05-08 16:09:43.223008+00,60,python
+H006,hard,oop_inheritance,write_the_code,"Write a base class Animal with a method speak() that returns ""..."". Write a subclass Dog that overrides speak() to return ""Woof"". Create a Dog instance and print the result of calling speak() on it.","class Animal:
+    def speak(self):
+        return ""...""
+
+class Dog(Animal):
+    def speak(self):
+        return ""Woof""
+
+dog = Dog()
+print(dog.speak())",,"Inheritance lets a subclass reuse and extend a parent class. When Dog overrides speak(), calling the method on a Dog instance uses the subclass version, not the parent's. This is method overriding and is central to polymorphism — the same call produces different behavior depending on the object's actual type.",2026-05-08 16:09:43.223008+00,Woof,python
+H007,hard,dunder_methods,write_the_code,"Write a class Vector with __init__(x, y), an __add__ method that returns a new Vector whose coordinates are the element-wise sum of both vectors, and a __str__ method that returns ""Vector(x, y)"". Print the result of Vector(1, 2) + Vector(3, 4).","class Vector:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __add__(self, other):
+        return Vector(self.x + other.x, self.y + other.y)
+
+    def __str__(self):
+        return f""Vector({self.x}, {self.y})""
+
+print(Vector(1, 2) + Vector(3, 4))",,Dunder methods let you define how your objects behave with built-in operators and functions. __add__ is called when you use the + operator between two instances. __str__ is called by print() and str() to produce a human-readable representation. Both make custom classes feel like native Python types.,2026-05-08 16:09:43.223008+00,"Vector(4, 6)",python
+H008,hard,itertools,write_the_code,"Import itertools.chain and use it to combine [1, 2, 3] and [4, 5, 6] into a single sequence. Print each element on its own line.","from itertools import chain
+
+for item in chain([1, 2, 3], [4, 5, 6]):
+    print(item)",,"itertools.chain takes multiple iterables and returns an iterator that yields elements from the first, then the second, and so on — without building a new combined list. It is memory-efficient for stitching together sequences that are processed one item at a time.",2026-05-08 16:09:43.223008+00,"1
+2
+3
+4
+5
+6",python
+H009,hard,functools,write_the_code,Use functools.partial and operator.mul to create a function called double that multiplies its argument by 2. Print double(7).,"import functools
+import operator
+
+double = functools.partial(operator.mul, 2)
+print(double(7))",,"functools.partial creates a new callable by freezing one or more arguments of an existing function. operator.mul(a, b) is the function form of a * b. Fixing the first argument to 2 produces a one-argument function that always multiplies its input by 2.",2026-05-08 16:09:43.223008+00,14,python
+H010,hard,closures,write_the_code,Write a factory function make_multiplier(n) that returns an inner function which takes one argument x and returns n * x. Store make_multiplier(3) in a variable triple and print triple(10).,"def make_multiplier(n):
+    def multiplier(x):
+        return n * x
+    return multiplier
+
+triple = make_multiplier(3)
+print(triple(10))","def make_multiplier(n):
+    return lambda x: n * x
+
+triple = make_multiplier(3)
+print(triple(10))","A closure is a function that retains access to variables from its enclosing scope, even after the outer function has returned. Here the inner function captures n from make_multiplier's local scope. triple(10) therefore computes 3 * 10 = 30 without needing n to be passed again.",2026-05-08 16:09:43.223008+00,30,python
+H011,hard,decorators,write_the_code,"Write a decorator count_calls that sets a call_count attribute to 0 on the wrapper function and increments it every time the decorated function is called. Apply it to a function greet() that prints ""Hello"". Call greet() three times and print greet.call_count.","def count_calls(func):
+    def wrapper(*args, **kwargs):
+        wrapper.call_count += 1
+        return func(*args, **kwargs)
+    wrapper.call_count = 0
+    return wrapper
+
+@count_calls
+def greet():
+    print(""Hello"")
+
+greet()
+greet()
+greet()
+print(greet.call_count)",,"Functions are objects in Python, so you can set attributes directly on them. The decorator initialises wrapper.call_count = 0 before returning the wrapper. Each call increments it. Because @count_calls replaces greet with wrapper, greet.call_count exposes that counter.",2026-05-08 16:09:43.223008+00,"Hello
+Hello
+Hello
+3",python
+H012,hard,generators,write_the_code,"Write a generator expression that produces the squares of numbers from 1 to 10, but only includes a square if it is odd. Print each value produced by the generator on its own line.","gen = (x**2 for x in range(1, 11) if x % 2 != 0)
+for value in gen:
+    print(value)","for value in (x**2 for x in range(1, 11) if x**2 % 2 != 0):
+    print(value)","A generator expression is written like a list comprehension but wrapped in parentheses instead of square brackets. It produces values lazily. Only odd numbers (1, 3, 5, 7, 9) produce odd squares, giving 1, 9, 25, 49, 81. Even numbers squared are always even so the filter x % 2 != 0 excludes them.",2026-05-08 16:09:43.223008+00,"1
+9
+25
+49
+81",python
+H013,hard,error_handling,write_the_code,"Define a custom exception class NegativeValueError that inherits from ValueError. Write a function square_root(n) that raises NegativeValueError(""Cannot take square root of negative number"") when n < 0. Call square_root(-4) inside a try/except block and print the exception message.","class NegativeValueError(ValueError):
+    pass
+
+def square_root(n):
+    if n < 0:
+        raise NegativeValueError(""Cannot take square root of negative number"")
+    return n ** 0.5
+
+try:
+    square_root(-4)
+except NegativeValueError as e:
+    print(e)",,Custom exceptions are created by subclassing a built-in exception. Inheriting from ValueError means callers can catch NegativeValueError specifically or catch the broader ValueError. The exception message is stored as the first argument and accessible via str(e) or e.args[0].,2026-05-08 16:09:43.223008+00,Cannot take square root of negative number,python
+H014,hard,dunder_methods,write_the_code,"Write a class Stack backed by a list. Implement push(item), pop(), __len__ (returns the number of items), and __repr__ (returns ""Stack([...])""). Push 1, 2, 3 onto a new stack, then print len(stack) and repr(stack).","class Stack:
+    def __init__(self):
+        self._items = []
+
+    def push(self, item):
+        self._items.append(item)
+
+    def pop(self):
+        return self._items.pop()
+
+    def __len__(self):
+        return len(self._items)
+
+    def __repr__(self):
+        return f""Stack({self._items})""
+
+stack = Stack()
+stack.push(1)
+stack.push(2)
+stack.push(3)
+print(len(stack))
+print(repr(stack))",,__len__ is called by len() and must return a non-negative integer. __repr__ is called by repr() and the interactive shell — it should return a string that clearly identifies the object's contents. Implementing these dunders makes your class integrate naturally with Python's built-in functions.,2026-05-08 16:09:43.223008+00,"3
+Stack([1, 2, 3])",python
+H015,hard,decorators,fill_in_the_blank,"Fill in the blank so the decorator correctly exposes the wrapper to callers, then print a call result:
+
+def decorator(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return ___
+
+@decorator
+def add(a, b):
+    return a + b
+
+print(add(2, 3))","def decorator(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+@decorator
+def add(a, b):
+    return a + b
+
+print(add(2, 3))",,A decorator must return a callable so the decorated name points to something that can be invoked. Returning wrapper — the inner function — replaces the original function with the version that adds extra behavior.,2026-05-08 16:09:43.223008+00,5,python
+H016,hard,decorators,fill_in_the_blank,"Fill in the blank to preserve the original function's __name__ and __doc__, then print the name:
+
+import functools
+def decorator(func):
+    @functools.___(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+@decorator
+def greet():
+    """"""Say hello.""""""
+    print(""Hello!"")
+
+print(greet.__name__)","import functools
+def decorator(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+@decorator
+def greet():
+    """"""Say hello.""""""
+    print(""Hello!"")
+
+print(greet.__name__)",,"Without @functools.wraps(func), the decorated function's __name__ and __doc__ become those of wrapper, which breaks introspection and debugging. @functools.wraps(func) copies those attributes from func onto wrapper automatically.",2026-05-08 16:09:43.223008+00,greet,python
+H017,hard,generators,fill_in_the_blank,"Fill in the keyword that pauses the function and sends a value to the caller, then print the collected values:
+
+def gen():
+    for i in range(3):
+        ___ i
+
+print(list(gen()))","def gen():
+    for i in range(3):
+        yield i
+
+print(list(gen()))",,"yield suspends the generator function's execution, sends the value to the caller, and resumes from the same point on the next call to next(). Unlike return, yield does not end the function — it merely pauses it until the next value is requested.",2026-05-08 16:09:43.223008+00,"[0, 1, 2]",python
+H018,hard,generators,fill_in_the_blank,"Fill in the built-in function that retrieves the next value from a generator object:
+
+def countdown(n):
+    while n > 0:
+        yield n
+        n -= 1
+
+g = countdown(3)
+print(___(g))","def countdown(n):
+    while n > 0:
+        yield n
+        n -= 1
+
+g = countdown(3)
+print(next(g))",,"next(iterator) calls the iterator's __next__ method, which resumes the generator until the next yield and returns the yielded value. When the generator is exhausted, next() raises StopIteration — unless you pass a default as the second argument, e.g. next(g, None).",2026-05-08 16:09:43.223008+00,3,python
+H019,hard,context_managers,fill_in_the_blank,"Fill in the dunder method name that is called when Python enters the with block:
+
+class CM:
+    def ___(self):
+        print(""entering"")
+        return self
+    def __exit__(self, *args):
+        print(""exiting"")
+
+with CM():
+    print(""inside"")","class CM:
+    def __enter__(self):
+        print(""entering"")
+        return self
+    def __exit__(self, *args):
+        print(""exiting"")
+
+with CM():
+    print(""inside"")",,"The with statement protocol calls __enter__ at the start of the block and __exit__ at the end, regardless of whether an exception occurred. The value returned by __enter__ is bound to the variable after as.",2026-05-08 16:09:43.223008+00,"entering
+inside
+exiting",python
+H020,hard,error_handling,fill_in_the_blank,"Fill in the variable name that binds the caught exception so it can be inspected:
+
+def risky():
+    raise ValueError(""boom"")
+
+try:
+    risky()
+except ValueError as ___:
+    print(e)","def risky():
+    raise ValueError(""boom"")
+
+try:
+    risky()
+except ValueError as e:
+    print(e)",,"The as clause in an except statement binds the exception object to a name so you can inspect its message, type, or attributes. By convention e is the standard name, but any valid identifier works. The binding is only in scope inside the except block.",2026-05-08 16:09:43.223008+00,boom,python
+H021,hard,error_handling,fill_in_the_blank,"Fill in the clause that always executes regardless of whether an exception occurred:
+
+def open_connection():
+    raise ConnectionError()
+
+try:
+    open_connection()
+except ConnectionError:
+    print(""failed"")
+___:
+    print(""always runs"")","def open_connection():
+    raise ConnectionError()
+
+try:
+    open_connection()
+except ConnectionError:
+    print(""failed"")
+finally:
+    print(""always runs"")",,"The finally clause runs whether the try block succeeded, raised a caught exception, raised an uncaught exception, or executed a return or break. It is the standard place for cleanup actions like closing files, releasing locks, or printing status.",2026-05-08 16:09:43.223008+00,"failed
+always runs",python
+H022,hard,oop_basics,fill_in_the_blank,"Fill in the method name that initialises instance attributes when a new object is created, then print one:
+
+class Dog:
+    def ___(self, name):
+        self.name = name
+
+d = Dog(""Rex"")
+print(d.name)","class Dog:
+    def __init__(self, name):
+        self.name = name
+
+d = Dog(""Rex"")
+print(d.name)",,__init__ is the initialiser method called automatically by Python after a new object is allocated. It receives the new instance as self and sets up its initial state. It does not return a value — it only mutates self.,2026-05-08 16:09:43.223008+00,Rex,python
+H023,hard,oop_inheritance,fill_in_the_blank,"Fill in the built-in call that gives access to the parent class so its __init__ is not skipped:
+
+class Animal:
+    def __init__(self, name):
+        self.name = name
+
+class Dog(Animal):
+    def __init__(self, name):
+        ___().__init__(name)
+        self.tricks = []
+
+d = Dog(""Rex"")
+print(d.name)","class Animal:
+    def __init__(self, name):
+        self.name = name
+
+class Dog(Animal):
+    def __init__(self, name):
+        super().__init__(name)
+        self.tricks = []
+
+d = Dog(""Rex"")
+print(d.name)",,super() returns a proxy object that delegates method calls to the parent class in the method resolution order. Calling super().__init__(name) runs Animal's __init__ so that the parent's setup is not skipped when the child overrides the method.,2026-05-08 16:09:43.223008+00,Rex,python
+H024,hard,dunder_methods,fill_in_the_blank,"Fill in the dunder method name so that print(obj) displays a human-readable string:
+
+class Point:
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+    def ___(self):
+        return f""Point({self.x}, {self.y})""
+
+print(Point(1, 2))","class Point:
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+    def __str__(self):
+        return f""Point({self.x}, {self.y})""
+
+print(Point(1, 2))",,"__str__ is called by str() and print() to get a friendly, human-readable representation. __repr__ is the other string dunder, but it targets developers and is used by repr() and the interactive shell. When __str__ is not defined, Python falls back to __repr__.",2026-05-08 16:09:43.223008+00,"Point(1, 2)",python
+H025,hard,functools,fill_in_the_blank,"Fill in the decorator name that caches return values so repeated calls with the same arguments skip recomputation:
+
+import functools
+@functools.___()
+def fib(n):
+    if n < 2: return n
+    return fib(n - 1) + fib(n - 2)
+
+print(fib(10))","import functools
+@functools.lru_cache()
+def fib(n):
+    if n < 2: return n
+    return fib(n - 1) + fib(n - 2)
+
+print(fib(10))",,functools.lru_cache wraps a function with a Least Recently Used cache. Repeated calls with the same arguments return the cached result immediately. This turns the naive exponential Fibonacci recursion into an O(n) computation by memoising each subproblem.,2026-05-08 16:09:43.223008+00,55,python
+H026,hard,itertools,fill_in_the_blank,"Fill in the function name so the output is [0, 1, 2, 3, 4, 5]:
+
+from itertools import ___
+print(list(___(range(3), range(3, 6))))","from itertools import chain
+print(list(chain(range(3), range(3, 6))))",,"itertools.chain takes multiple iterables and returns a single iterator that yields elements from each in sequence. It never builds an intermediate combined list, making it memory-efficient for large sequences.",2026-05-08 16:11:13.914963+00,"[0, 1, 2, 3, 4, 5]",python
+H027,hard,decorators,output_prediction,"What does this code print?
+def logger(func):
+    def wrapper(*args, **kwargs):
+        print(f""Calling {func.__name__}"")
+        result = func(*args, **kwargs)
+        print(""Done"")
+        return result
+    return wrapper
+
+@logger
+def add(a, b):
+    return a + b
+
+print(add(2, 3))","Calling add
+Done
+5",,"add(2, 3) actually calls wrapper(2, 3). The wrapper prints ""Calling add"", calls the original add which returns 5, prints ""Done"", then returns 5. The outer print() receives that return value and prints 5 on its own line.",2026-05-08 16:11:13.914963+00,"Calling add
+Done
+5",python
+H028,hard,generators,output_prediction,"What does this code print?
+def gen():
+    yield 1
+    yield 2
+    yield 3
+
+g = gen()
+print(next(g))
+print(next(g))","1
+2",,"Calling gen() creates the generator object without executing any code. The first next(g) runs until the first yield, producing 1. The second next(g) resumes from after the first yield and runs to the second yield, producing 2. The third yield is never reached.",2026-05-08 16:11:13.914963+00,"1
+2",python
+H029,hard,oop_basics,output_prediction,"What does this code print?
+class Counter:
+    count = 0
+    def inc(self):
+        Counter.count += 1
+
+a = Counter()
+b = Counter()
+a.inc()
+b.inc()
+print(Counter.count)",2,,"count is a class variable — it belongs to Counter itself, not to any individual instance. Both a.inc() and b.inc() modify Counter.count directly (not self.count), so both increments affect the same shared value. The final print shows 2.",2026-05-08 16:11:13.914963+00,2,python
+H030,hard,oop_inheritance,output_prediction,"What does this code print?
+class A:
+    def hello(self):
+        return ""A""
+
+class B(A):
+    def hello(self):
+        return ""B""
+
+print(B().hello())",B,,"B overrides hello() with its own version. When hello() is called on a B instance, Python resolves the method by looking up B's class first. Since B defines hello(), Python uses that version, returning ""B"" — the parent's implementation is never reached.",2026-05-08 16:11:13.914963+00,B,python
+H031,hard,dunder_methods,output_prediction,"What does this code print?
+class N:
+    def __init__(self, v):
+        self.v = v
+    def __add__(self, other):
+        return N(self.v + other.v)
+    def __str__(self):
+        return str(self.v)
+
+print(N(3) + N(4))",7,,"N(3) + N(4) triggers __add__, which creates a new N object with v = 3 + 4 = 7. print() then calls __str__ on that object, which returns str(7) = ""7"". Python prints that string.",2026-05-08 16:11:13.914963+00,7,python
+H032,hard,error_handling,output_prediction,"What does this code print?
+try:
+    x = 1 / 0
+except ZeroDivisionError:
+    print(""caught"")
+finally:
+    print(""done"")","caught
+done",,"1 / 0 raises ZeroDivisionError, which the except clause catches, printing ""caught"". The finally clause then runs unconditionally, printing ""done"". Because the exception was handled, execution continues normally after the entire block.",2026-05-08 16:11:13.914963+00,"caught
+done",python
+H033,hard,closures,output_prediction,"What does this code print?
+def outer(x):
+    def inner(y):
+        return x + y
+    return inner
+
+add5 = outer(5)
+print(add5(3))",8,,"outer(5) creates inner and returns it. At that moment, inner closes over the value x=5 from outer's scope. Calling add5(3) invokes inner(3), which computes 5 + 3 = 8. The variable x is kept alive by the closure even though outer has finished running.",2026-05-08 16:11:13.914963+00,8,python
+H034,hard,itertools,output_prediction,"What does this code print?
+from itertools import islice
+
+gen = (x**2 for x in range(100))
+print(list(islice(gen, 4)))","[0, 1, 4, 9]",,"The generator expression lazily produces squares: 0, 1, 4, 9, 16, ... itertools.islice(gen, 4) takes only the first 4 values without consuming or storing the rest. list() materialises those 4 values into [0, 1, 4, 9].",2026-05-08 16:11:13.914963+00,"[0, 1, 4, 9]",python
+H035,hard,decorators,spot_the_bug,"After this decorator is applied, greet.__name__ prints ""wrapper"" instead of ""greet"". Add the one line that fixes it so the original name is preserved.
+
+def my_decorator(func):
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+@my_decorator
+def greet():
+    """"""Say hello.""""""
+    print(""Hello!"")
+
+print(greet.__name__)","import functools
+
+def my_decorator(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+@my_decorator
+def greet():
+    """"""Say hello.""""""
+    print(""Hello!"")
+
+print(greet.__name__)",,"Without @functools.wraps(func), the decorated name greet points to wrapper, inheriting wrapper's __name__ and __doc__. The fix is to add @functools.wraps(func) directly above def wrapper(...). This copies the original function's attributes onto wrapper so introspection and debugging tools see the correct name.",2026-05-08 16:11:13.914963+00,greet,python
+H036,hard,generators,spot_the_bug,"This loop raises StopIteration on the 6th call to next() because the generator only yields 5 values. Fix it to stop cleanly, printing each value.
+
+g = (x for x in range(5))
+for _ in range(6):
+    print(next(g))","g = (x for x in range(5))
+for _ in range(6):
+    value = next(g, None)
+    if value is None:
+        break
+    print(value)",,"The generator yields values 0 through 4 (five values). The 6th call to next(g) finds no more values and raises StopIteration. A for-in loop handles this automatically, but calling next() manually does not. Guard against it by passing a sentinel default: next(g, None), which returns None instead of raising when the generator is exhausted.",2026-05-08 16:11:13.914963+00,"0
+1
+2
+3
+4",python
+H037,hard,oop_basics,what_is_the_result,"What does this code print, and why is the result surprising?
+class Dog:
+    tricks = []
+    def add_trick(self, t):
+        self.tricks.append(t)
+
+a = Dog()
+b = Dog()
+a.add_trick(""roll"")
+print(b.tricks)",['roll'],,"tricks is a class variable — a single list shared by every Dog instance. When a.add_trick(""roll"") calls self.tricks.append(t), Python looks up tricks on the class (since it is not on the instance) and mutates that shared list in place. b.tricks sees the same object. Fix: initialise self.tricks = [] inside __init__ to give each instance its own list.",2026-05-08 16:11:13.914963+00,['roll'],python
+H038,hard,oop_inheritance,spot_the_bug,"This code raises AttributeError: 'B' object has no attribute 'x' because B.__init__ never runs A.__init__. Fix it so b.x is set, then print it.
+
+class A:
+    def __init__(self):
+        self.x = 1
+
+class B(A):
+    def __init__(self):
+        self.y = 2
+
+b = B()
+print(b.x)","class A:
+    def __init__(self):
+        self.x = 1
+
+class B(A):
+    def __init__(self):
+        super().__init__()
+        self.y = 2
+
+b = B()
+print(b.x)",,"B.__init__ overrides A.__init__ completely without calling super().__init__(). That means A's initialiser never runs, so self.x is never set on the instance. The fix is to add super().__init__() as the first line of B.__init__, which runs the parent's setup before adding B-specific attributes.",2026-05-08 16:11:13.914963+00,1,python
+H039,hard,error_handling,spot_the_bug,"This code raises ValueError, but the except clause only catches TypeError, so it is never handled. Fix the except clause so the error is caught and ""caught"" is printed.
+
+try:
+    raise ValueError(""bad input"")
+except TypeError:
+    print(""caught"")","try:
+    raise ValueError(""bad input"")
+except ValueError:
+    print(""caught"")",,"The except clause only catches TypeError. ValueError is not a subclass of TypeError, so Python does not enter the except block. The exception continues propagating up the call stack and crashes the program. Fix by catching ValueError directly, or catching the common base Exception if multiple types are acceptable.",2026-05-08 16:11:13.914963+00,caught,python
+H040,hard,context_managers,spot_the_bug,"Using this class in a with block raises AttributeError: __exit__ because the context manager is missing that method. Add it so the block runs and prints ""done"".
+
+class Broken:
+    def __enter__(self):
+        return self
+
+with Broken() as b:
+    print(""done"")","class Broken:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+with Broken() as b:
+    print(""done"")",,"The with statement protocol requires both __enter__ and __exit__. Python calls __exit__ at the end of every with block to handle cleanup and exception suppression. Since Broken has no __exit__, Python raises AttributeError. Fix by adding def __exit__(self, exc_type, exc_val, exc_tb): return False.",2026-05-08 16:11:13.914963+00,done,python
+I001,intermediate,list_comprehension,write_the_code,Write a list comprehension that creates a list of squares of all even numbers from 1 to 10. Print the result.,"result = [x**2 for x in range(1, 11) if x % 2 == 0]
+print(result)","result = [x**2 for x in range(2, 11, 2)]
+print(result)","A list comprehension [expr for var in iterable if condition] builds a list in one line. range(1, 11) gives numbers 1 through 10. The condition x % 2 == 0 keeps only even numbers, and x**2 squares each one.",2026-05-08 16:06:46.436141+00,"[4, 16, 36, 64, 100]",python
+I002,intermediate,dict_comprehension,write_the_code,"Write a dict comprehension that maps each word in [""cat"", ""dog"", ""elephant""] to its length. Print the result.","words = [""cat"", ""dog"", ""elephant""]
+result = {word: len(word) for word in words}
+print(result)",,"A dict comprehension {key_expr: value_expr for var in iterable} builds a dictionary in one line. Here len(word) computes the length of each string, so each word becomes the key and its character count becomes the value.",2026-05-08 16:06:46.436141+00,"{'cat': 3, 'dog': 3, 'elephant': 8}",python
+I003,intermediate,set_comprehension,write_the_code,"Write a set comprehension that contains the first letter of each word in [""apple"", ""banana"", ""avocado"", ""blueberry""]. Print the result.","words = [""apple"", ""banana"", ""avocado"", ""blueberry""]
+result = {word[0] for word in words}
+print(result)",,"A set comprehension {expr for var in iterable} builds a set, which automatically removes duplicates. word[0] gets the first character of each word. Since multiple words share the same first letter, the result is the set {'a', 'b'}.",2026-05-08 16:06:46.436141+00,"{'a', 'b'}",python
+I004,intermediate,functions_default_args,write_the_code,"Write a function greet(name, greeting=""Hello"") that prints the greeting and name in the format ""Hello, Alice!"". Call it as greet(""Alice"") then greet(""Bob"", ""Hi"").","def greet(name, greeting=""Hello""):
+    print(f""{greeting}, {name}!"")
+
+greet(""Alice"")
+greet(""Bob"", ""Hi"")",,"Default arguments give a parameter a fallback value used when the caller does not supply one. When greet(""Alice"") is called, greeting stays ""Hello"". When greet(""Bob"", ""Hi"") is called, greeting is overridden to ""Hi"".",2026-05-08 16:06:46.436141+00,"Hello, Alice!
+Hi, Bob!",python
+I005,intermediate,args,write_the_code,"Write a function total(*numbers) that returns the sum of any number of positional arguments. Print total(1, 2, 3, 4).","def total(*numbers):
+    return sum(numbers)
+
+print(total(1, 2, 3, 4))",,"The *args syntax collects all extra positional arguments into a tuple. Inside the function, numbers is that tuple, so sum(numbers) adds them all. This lets callers pass any number of values without defining fixed parameters.",2026-05-08 16:06:46.436141+00,10,python
+I006,intermediate,kwargs,write_the_code,"Write a function display(**info) that prints each key and value on its own line in the format ""name: Alice"". Call it with name=""Alice"", age=30.","def display(**info):
+    for key, value in info.items():
+        print(f""{key}: {value}"")
+
+display(name=""Alice"", age=30)",,"The **kwargs syntax collects all extra keyword arguments into a dictionary. Iterating over info.items() gives (key, value) pairs, which you can print with an f-string or .format(). The caller uses keyword syntax to pass named values.",2026-05-08 16:06:46.436141+00,"name: Alice
+age: 30",python
+I007,intermediate,scope,write_the_code,Write a function make_counter() that defines an inner function increment() which adds 1 to a nonlocal variable count each time it is called. Return increment. Call the returned function 3 times and print the count after the third call.,"def make_counter():
+    count = 0
+    def increment():
+        nonlocal count
+        count += 1
+        return count
+    return increment
+
+counter = make_counter()
+counter()
+counter()
+print(counter())",,"nonlocal lets an inner function read and modify a variable from its enclosing scope without making it global. Each call to increment() adds 1 to the count variable that lives in make_counter's frame, so after 3 calls count is 3.",2026-05-08 16:06:46.436141+00,3,python
+I008,intermediate,lambda,write_the_code,"Write a lambda expression that takes two numbers and returns the larger one. Store it in a variable called bigger and print bigger(5, 9).","bigger = lambda a, b: a if a > b else b
+print(bigger(5, 9))",,"A lambda is an anonymous one-expression function. The conditional expression a if a > b else b evaluates and returns whichever of the two arguments is greater. For bigger(5, 9), 9 > 5 is False so the else branch returns 9.",2026-05-08 16:06:46.436141+00,9,python
+I009,intermediate,string_methods,write_the_code,"Given sentence = ""the quick brown fox"", write code that splits it into words, capitalizes the first letter of each word, joins them back with a single space, and prints the result.","sentence = ""the quick brown fox""
+words = sentence.split()
+print("" "".join(word.capitalize() for word in words))","sentence = ""the quick brown fox""
+print("" "".join(w.capitalize() for w in sentence.split()))","str.split() breaks a string on whitespace into a list of words. str.capitalize() uppercases the first character and lowercases the rest. "" "".join(words) reassembles the list into a single string with spaces between items.",2026-05-08 16:06:46.436141+00,The Quick Brown Fox,python
+I010,intermediate,dict_crud,write_the_code,"Write code that creates a dictionary scores = {""Alice"": 90, ""Bob"": 78}, adds ""Carol"" with a score of 95, updates Bob's score to 85, removes Alice, then prints the final dictionary.","scores = {""Alice"": 90, ""Bob"": 78}
+scores[""Carol""] = 95
+scores[""Bob""] = 85
+del scores[""Alice""]
+print(scores)",,"Dictionaries support direct key assignment for both adding and updating. scores[""Carol""] = 95 adds a new key. scores[""Bob""] = 85 updates an existing one. del scores[""Alice""] removes the key-value pair entirely.",2026-05-08 16:06:46.436141+00,"{'Bob': 85, 'Carol': 95}",python
+I011,intermediate,dict_iteration,write_the_code,"Write code that iterates over the dictionary {""a"": 1, ""b"": 2, ""c"": 3} and prints each key-value pair in the format ""a -> 1"".","d = {""a"": 1, ""b"": 2, ""c"": 3}
+for k, v in d.items():
+    print(f""{k} -> {v}"")",,"dict.items() returns each key-value pair as a tuple. Unpacking it with for k, v in d.items() lets you use both the key and value directly in the loop body, making it easy to format each pair.",2026-05-08 16:06:46.436141+00,"a -> 1
+b -> 2
+c -> 3",python
+I012,intermediate,set_operations,write_the_code,"Write code that creates two sets A = {1, 2, 3, 4} and B = {3, 4, 5, 6}. Print their union, intersection, and difference A - B on separate lines.","A = {1, 2, 3, 4}
+B = {3, 4, 5, 6}
+print(A | B)
+print(A & B)
+print(A - B)","A = {1, 2, 3, 4}
+B = {3, 4, 5, 6}
+print(A.union(B))
+print(A.intersection(B))
+print(A.difference(B))",Set operators mirror mathematical set theory. | (or .union()) combines both sets. & (or .intersection()) returns only shared elements. - (or .difference()) returns elements in A that are not in B.,2026-05-08 16:06:46.436141+00,"{1, 2, 3, 4, 5, 6}
+{3, 4}
+{1, 2}",python
+I013,intermediate,nested_loops,write_the_code,"Write nested loops that print a 3x3 multiplication table. Each line should follow the format ""1 x 1 = 1"". Use an outer loop for rows (1 to 3) and an inner loop for columns (1 to 3).","for i in range(1, 4):
+    for j in range(1, 4):
+        print(f""{i} x {j} = {i * j}"")",,"Nesting a for loop inside another lets you visit every combination of two ranges. The outer loop controls the row number and the inner loop controls the column, so the body executes 3 x 3 = 9 times total.",2026-05-08 16:06:46.436141+00,"1 x 1 = 1
+1 x 2 = 2
+1 x 3 = 3
+2 x 1 = 2
+2 x 2 = 4
+2 x 3 = 6
+3 x 1 = 3
+3 x 2 = 6
+3 x 3 = 9",python
+I014,intermediate,list_comprehension,fill_in_the_blank,"Fill in the blank to keep only even numbers, then print them:
+
+evens = [x for x in range(20) if ___]
+print(evens)","evens = [x for x in range(20) if x % 2 == 0]
+print(evens)",,"The if clause in a list comprehension acts as a filter. x % 2 == 0 uses the modulo operator to check whether x divides evenly by 2, which is true for every even number.",2026-05-08 16:06:46.436141+00,"[0, 2, 4, 6, 8, 10, 12, 14, 16, 18]",python
+I015,intermediate,dict_comprehension,fill_in_the_blank,"Fill in the missing keyword to invert a dictionary (swap keys and values), then print it:
+
+d = {""a"": 1, ""b"": 2}
+inv = {v: k for k, v ___ d.items()}
+print(inv)","d = {""a"": 1, ""b"": 2}
+inv = {v: k for k, v in d.items()}
+print(inv)",,"The for clause in a comprehension uses the keyword in to iterate over an iterable. d.items() yields (key, value) tuples, and the unpacking k, v separates them so you can swap their roles in the output.",2026-05-08 16:06:46.436141+00,"{1: 'a', 2: 'b'}",python
+I016,intermediate,functions_default_args,fill_in_the_blank,"Fill in the default value so that power(3) returns 9, then print it:
+
+def power(base, exp=___): return base ** exp
+print(power(3))","def power(base, exp=2): return base ** exp
+print(power(3))",,"A default argument is written as parameter=value in the function signature. With exp=2, calling power(3) computes 3 ** 2 which equals 9. The caller can still override it, e.g. power(3, 3) returns 27.",2026-05-08 16:06:46.436141+00,9,python
+I017,intermediate,args,fill_in_the_blank,"Fill in the blank so the function returns the sum of all positional arguments, then print it:
+
+def total(*nums): return ___(nums)
+print(total(1, 2, 3, 4))","def total(*nums): return sum(nums)
+print(total(1, 2, 3, 4))",,*nums collects all positional arguments into a tuple called nums. The built-in sum() then adds every element of that tuple together and returns the total.,2026-05-08 16:06:46.436141+00,10,python
+I018,intermediate,lambda,fill_in_the_blank,"Fill in the expression so this lambda doubles its input, then print a call result:
+
+double = lambda x: ___
+print(double(5))","double = lambda x: x * 2
+print(double(5))",,"A lambda body is a single expression whose value is automatically returned. x * 2 multiplies the argument by 2, so double(5) returns 10.",2026-05-08 16:06:46.436141+00,10,python
+I019,intermediate,string_methods,fill_in_the_blank,"Fill in the method name that splits a string on "", "", then print the list:
+
+sentence = ""a, b, c""
+words = sentence.___(', ')
+print(words)","sentence = ""a, b, c""
+words = sentence.split(', ')
+print(words)",,"str.split(sep) breaks a string into a list of substrings at every occurrence of sep. ""a, b, c"".split("", "") produces [""a"", ""b"", ""c""].",2026-05-08 16:06:46.436141+00,"['a', 'b', 'c']",python
+I020,intermediate,string_methods,fill_in_the_blank,"Fill in the method name that inserts ""World"" into the placeholder, then print the message:
+
+msg = ""Hello, {}!"".___('World')
+print(msg)","msg = ""Hello, {}!"".format('World')
+print(msg)",,"str.format() replaces each {} placeholder in the string with the corresponding argument in order. ""Hello, {}!"".format(""World"") produces ""Hello, World!"".",2026-05-08 16:06:46.436141+00,"Hello, World!",python
+I021,intermediate,dict_iteration,fill_in_the_blank,"Fill in the method name that returns all keys of a dictionary as a view object, then print each key:
+
+d = {""a"": 1, ""b"": 2}
+for key in d.___():
+    print(key)","d = {""a"": 1, ""b"": 2}
+for key in d.keys():
+    print(key)",,"dict.keys() returns a live view of all keys in the dictionary. Iterating over it visits every key without creating an extra list, and the view stays in sync if the dictionary changes.",2026-05-08 16:06:46.436141+00,"a
+b",python
+I022,intermediate,set_operations,fill_in_the_blank,"Fill in the operator that gives the intersection of two sets, then print the sorted result:
+
+A = {1, 2, 3}
+B = {2, 3, 4}
+common = A ___ B
+print(sorted(common))","A = {1, 2, 3}
+B = {2, 3, 4}
+common = A & B
+print(sorted(common))",,"The & operator computes the intersection of two sets — the elements that appear in both. It is equivalent to A.intersection(B). For example, {1,2,3} & {2,3,4} gives {2, 3}.",2026-05-08 16:06:46.436141+00,"[2, 3]",python
+I023,intermediate,scope,fill_in_the_blank,"Fill in the keyword so the inner function can modify the outer variable count, then print the total:
+
+def outer():
+    count = 0
+    def inner():
+        ___ count
+        count += 1
+    inner()
+    inner()
+    return count
+
+print(outer())","def outer():
+    count = 0
+    def inner():
+        nonlocal count
+        count += 1
+    inner()
+    inner()
+    return count
+
+print(outer())",,"Without nonlocal, assigning to count inside inner() creates a new local variable, leaving the outer count unchanged. The nonlocal keyword tells Python to look up the enclosing scope for that name instead of creating a new binding.",2026-05-08 16:06:46.436141+00,2,python
+I024,intermediate,list_comprehension,output_prediction,"What does this code print?
+print([x**2 for x in range(5)])","[0, 1, 4, 9, 16]",,"range(5) yields 0, 1, 2, 3, 4. The comprehension squares each value: 0²=0, 1²=1, 2²=4, 3²=9, 4²=16. The result is a list, so Python prints it with square brackets and commas.",2026-05-08 16:06:46.436141+00,"[0, 1, 4, 9, 16]",python
+I025,intermediate,dict_crud,output_prediction,"What does this code print?
+d = {'x': 10, 'y': 20}
+d['x'] += 5
+print(d['x'])",15,,"d[""x""] += 5 is shorthand for d[""x""] = d[""x""] + 5. It reads the current value (10), adds 5, and stores 15 back under the same key. print(d[""x""]) then outputs that updated value.",2026-05-08 16:06:46.436141+00,15,python
+I026,intermediate,set_operations,output_prediction,"What does this code print?
+s = {1, 2, 2, 3, 3, 3}
+print(len(s))",3,,"A set stores only unique elements. Duplicate values 2 and 3 are automatically discarded when the set is created, leaving {1, 2, 3}. len() then counts those three distinct elements.",2026-05-08 16:06:46.436141+00,3,python
+I027,intermediate,lambda,output_prediction,"What does this code print?
+f = lambda a, b: a if a > b else b
+print(f(4, 7))",7,,"The lambda returns whichever argument is greater using a conditional expression. With a=4 and b=7, the condition 4 > 7 is False, so the expression evaluates to b, which is 7.",2026-05-08 16:06:46.436141+00,7,python
+I028,intermediate,string_methods,output_prediction,"What does this code print?
+print('hello world'.split()[1].upper())",WORLD,,".split() with no argument splits on any whitespace, giving [""hello"", ""world""]. [1] picks the second element, ""world"". .upper() converts every character to uppercase, producing ""WORLD"".",2026-05-08 16:06:46.436141+00,WORLD,python
+I029,intermediate,scope,output_prediction,"What does this code print?
+x = 5
+def f():
+    x = 10
+f()
+print(x)",5,,"Inside f(), x = 10 creates a new local variable that shadows the global x — it does not modify it. When the function returns its local scope is discarded. The global x is still 5, so that is what print(x) outputs.",2026-05-08 16:06:46.436141+00,5,python
+I030,intermediate,nested_loops,output_prediction,"What does this code print?
+total = 0
+for i in range(3):
+    for j in range(3):
+        total += 1
+print(total)",9,,"The outer loop runs 3 times and the inner loop runs 3 times for each outer iteration, so total += 1 executes 3 x 3 = 9 times. total starts at 0 and ends at 9.",2026-05-08 16:06:46.436141+00,9,python
+I031,intermediate,functions_default_args,spot_the_bug,"This function has a mutable-default-argument bug: the default list is shared across calls. Fix it so each call starts with a fresh list, then print add(1) and add(2).
+
+def add(a, b=[]):
+    b.append(a)
+    return b
+
+print(add(1))
+print(add(2))","def add(a, b=None):
+    if b is None:
+        b = []
+    b.append(a)
+    return b
+
+print(add(1))
+print(add(2))",,Default argument values are evaluated once at function definition time. The same list object is reused every time b is not supplied by the caller. Fix this with b=None and then inside the function: if b is None: b = []. This creates a fresh list on every call.,2026-05-08 16:09:43.223008+00,"[1]
+[2]",python
+I032,intermediate,dict_crud,spot_the_bug,"This code raises KeyError: 'Bob' because 'Bob' is not in the dictionary. Fix it to look up 'Bob' safely, printing a default of 0 when the key is missing.
+
+scores = {'Alice': 90}
+print(scores['Bob'])","scores = {'Alice': 90}
+print(scores.get('Bob', 0))",,"Accessing a dictionary with a key that does not exist raises a KeyError. The safe alternatives are scores.get(""Bob""), which returns None instead of raising, or scores.get(""Bob"", 0) to supply a default value, or checking first with if ""Bob"" in scores.",2026-05-08 16:09:43.223008+00,0,python
+I033,intermediate,set_operations,what_is_the_result,"What does this code print?
+a = {1, 2, 3}
+b = a
+b.add(4)
+print(a)","{1, 2, 3, 4}",,"Sets are mutable objects. b = a does not copy the set — both names point to the same object in memory. When b.add(4) mutates that object, the change is visible through a as well. To make an independent copy, use b = a.copy().",2026-05-08 16:09:43.223008+00,"{1, 2, 3, 4}",python
+I034,intermediate,list_comprehension,spot_the_bug,"The goal is to remove all 2s from the list, but modifying the list while iterating skips an element. Fix it so the result is [1, 3].
+
+nums = [1, 2, 2, 3]
+for n in nums:
+    if n == 2:
+        nums.remove(n)
+print(nums)","nums = [1, 2, 2, 3]
+nums = [n for n in nums if n != 2]
+print(nums)",,"When the first 2 is removed, the list shifts left and the iterator's index advances past the second 2 without ever checking it. The safe fix is to iterate over a copy — for n in nums[:] — or use a list comprehension: nums = [n for n in nums if n != 2].",2026-05-08 16:09:43.223008+00,"[1, 3]",python
+I035,intermediate,dict_crud,what_is_the_result,"What does this code print?
+d = {}
+d.setdefault('count', 0)
+d['count'] += 1
+d.setdefault('count', 99)
+print(d['count'])",1,,"setdefault(key, default) only sets the value if the key is not already in the dictionary. The first call sets 'count' to 0. Then d['count'] += 1 makes it 1. The second setdefault call sees that 'count' already exists and does nothing, leaving the value as 1.",2026-05-08 16:09:43.223008+00,1,python
+S001,simple,variables,write_the_code,Write code that stores the integer 7 in a variable called lucky_number and prints it.,"lucky_number = 7
+print(lucky_number)",,"Variables are created with the = assignment operator. Writing lucky_number = 7 stores the integer 7. Calling print(lucky_number) then outputs the stored value, which is 7.",2026-05-08 16:06:40.849317+00,7,python
+S002,simple,strings,write_the_code,"Write code that stores the string ""Python"" in a variable called language and prints it in all uppercase letters.","language = ""Python""
+print(language.upper())",,"Strings are stored by assigning text in quotes to a variable. The .upper() method returns a new string with every character converted to uppercase, so language.upper() produces ""PYTHON"".",2026-05-08 16:06:40.849317+00,PYTHON,python
+S003,simple,type_conversion,write_the_code,"Write code that converts the string ""50"" to an integer, adds 10 to it, and prints the result.","result = int(""50"") + 10
+print(result)","n = int(""50"")
+n += 10
+print(n)","int() converts a string containing a whole number into an integer you can do arithmetic on. Without this conversion, adding 10 to ""50"" would raise a TypeError. int(""50"") gives 50, and 50 + 10 = 60.",2026-05-08 16:06:40.849317+00,60,python
+S004,simple,operators,write_the_code,Write code that calculates and prints the remainder when 23 is divided by 4.,print(23 % 4),"remainder = 23 % 4
+print(remainder)","The % operator (modulo) returns the remainder after integer division. 23 divided by 4 gives 5 with a remainder of 3 (because 4 × 5 = 20, and 23 − 20 = 3), so 23 % 4 evaluates to 3.",2026-05-08 16:06:40.849317+00,3,python
+S005,simple,conditionals,write_the_code,"Write code that stores 15 in a variable called age. If age is greater than or equal to 18, print ""adult"". Otherwise, print ""minor"".","age = 15
+if age >= 18:
+    print(""adult"")
+else:
+    print(""minor"")",,"An if/else statement runs one of two blocks based on a condition. Since 15 is not >= 18, the if condition is False, so the else block runs and ""minor"" is printed.",2026-05-08 16:06:40.849317+00,minor,python
+S006,simple,loops,write_the_code,"Write code that uses a for loop and range() to print the even numbers from 2 to 8, one per line.","for i in range(2, 9, 2):
+    print(i)","for i in range(1, 9):
+    if i % 2 == 0:
+        print(i)","range(start, stop, step) generates numbers from start up to (but not including) stop, incrementing by step each time. range(2, 9, 2) produces 2, 4, 6, 8. The for loop prints each value on its own line.",2026-05-08 16:06:40.849317+00,"2
+4
+6
+8",python
+S007,simple,lists,write_the_code,"Write code that creates a list called planets containing ""Mercury"", ""Venus"", and ""Earth"". Print the last item in the list.","planets = [""Mercury"", ""Venus"", ""Earth""]
+print(planets[-1])","planets = [""Mercury"", ""Venus"", ""Earth""]
+print(planets[2])","Lists store multiple items in order. To access the last element you can use index -1, which always refers to the final item regardless of list length. planets[-1] returns ""Earth"".",2026-05-08 16:06:40.849317+00,Earth,python
+S008,simple,strings,write_the_code,"Write code that stores the string ""  hello  "" in a variable and prints it with all leading and trailing spaces removed.","text = ""  hello  ""
+print(text.strip())",,"The .strip() method removes all leading and trailing whitespace from a string and returns a new string. Calling .strip() on ""  hello  "" produces ""hello"".",2026-05-08 16:06:40.849317+00,hello,python
+S009,simple,loops,write_the_code,"Write code that uses a while loop to count down from 3 to 1, printing each number, then prints ""Go!"" after the loop ends.","count = 3
+while count >= 1:
+    print(count)
+    count -= 1
+print(""Go!"")",,"A while loop runs as long as its condition is True. Starting count at 3 and subtracting 1 each iteration, the loop prints 3, 2, 1 before count reaches 0 and the condition becomes False. print(""Go!"") runs once after the loop exits.",2026-05-08 16:06:40.849317+00,"3
+2
+1
+Go!",python
+S010,simple,builtins,write_the_code,"Write code that creates the list [4, 7, 2, 9, 1] and prints the smallest number first, then the largest number on the next line.","nums = [4, 7, 2, 9, 1]
+print(min(nums))
+print(max(nums))",,"The built-in min() function returns the smallest value in an iterable, and max() returns the largest. min([4, 7, 2, 9, 1]) is 1 and max([4, 7, 2, 9, 1]) is 9. Each print() call outputs on its own line.",2026-05-08 16:06:40.849317+00,"1
+9",python
+S011,simple,tuples,write_the_code,"Write code that creates a tuple called colors containing ""red"", ""green"", and ""blue"". Print the length of the tuple.","colors = (""red"", ""green"", ""blue"")
+print(len(colors))",,"Tuples are created by separating values with commas, usually wrapped in parentheses: colors = (""red"", ""green"", ""blue""). Like lists, tuples work with len(), which returns the number of elements. len(colors) returns 3.",2026-05-08 16:06:40.849317+00,3,python
+S012,simple,lists,write_the_code,"Write code that creates an empty list called bag, appends ""book"" to it, then appends ""pen"", then prints the list.","bag = []
+bag.append(""book"")
+bag.append(""pen"")
+print(bag)",,"An empty list is created with []. The .append() method adds a single item to the end of the list in place. After two appends, bag contains both items, and printing the list outputs it in standard list format: ['book', 'pen'].",2026-05-08 16:06:40.849317+00,"['book', 'pen']",python
+S013,simple,variables,fill_in_the_blank,"Fill in the blank so the code prints 7.
+
+counter = 10
+counter = counter - 3
+print(___)","counter = 10
+counter = counter - 3
+print(counter)",,"The variable counter is reassigned to 10 - 3 = 7. To print this updated value, you pass the variable name counter (without quotes) to print(). Passing the string ""counter"" in quotes would print the text counter, not the number 7.",2026-05-08 16:06:40.849317+00,7,python
+S014,simple,strings,fill_in_the_blank,"Fill in the blank so the code prints: hello world
+
+sentence = ""Hello World""
+print(sentence.___())","sentence = ""Hello World""
+print(sentence.lower())",,"The .lower() method returns a copy of the string with all characters converted to lowercase. Calling sentence.lower() on ""Hello World"" produces ""hello world"". The original variable is unchanged.",2026-05-08 16:06:40.849317+00,hello world,python
+S015,simple,operators,fill_in_the_blank,"Fill in the blank so the code prints 81.
+
+base = 3
+result = base ___ 4
+print(result)","base = 3
+result = base ** 4
+print(result)",,"The ** operator raises the left number to the power of the right number. 3 ** 4 means 3 × 3 × 3 × 3 = 81. Using * would give 3 × 4 = 12, which is multiplication, not exponentiation.",2026-05-08 16:06:40.849317+00,81,python
+S016,simple,conditionals,fill_in_the_blank,"Fill in the blank so the code prints ""no points"".
+
+points = 0
+if points ___ 0:
+    print(""no points"")
+else:
+    print(""has points"")","points = 0
+if points == 0:
+    print(""no points"")
+else:
+    print(""has points"")",,"The == operator checks whether two values are equal. Since points is 0, the condition points == 0 is True, so the if block runs. Using = instead of == would cause a SyntaxError — a single = is for assignment, not comparison.",2026-05-08 16:06:40.849317+00,no points,python
+S017,simple,loops,fill_in_the_blank,"Fill in the blank so the loop prints 1, 2, 3, and 4 on separate lines.
+
+for i in range(1, ___):
+    print(i)","for i in range(1, 5):
+    print(i)",,"range(start, stop) generates integers from start up to but not including stop. To produce 1, 2, 3, 4, you need range(1, 5) — the stop value 5 itself is excluded. Using range(1, 4) would only print 1, 2, 3.",2026-05-08 16:06:40.849317+00,"1
+2
+3
+4",python
+S018,simple,lists,fill_in_the_blank,"Fill in the blank so the code prints ""rabbit"".
+
+animals = [""cat"", ""dog"", ""rabbit""]
+print(animals[___])","animals = [""cat"", ""dog"", ""rabbit""]
+print(animals[2])",,"List indexing starts at 0, so ""cat"" is at index 0, ""dog"" at index 1, and ""rabbit"" at index 2. You can also use index -1, which always refers to the last element in any list.",2026-05-08 16:06:40.849317+00,rabbit,python
+S019,simple,type_conversion,fill_in_the_blank,"Fill in the blank so the code prints 196.
+
+temperature = ""98""
+temp_int = ___(temperature)
+print(temp_int * 2)","temperature = ""98""
+temp_int = int(temperature)
+print(temp_int * 2)",,"int() converts a string that contains a whole number into an actual integer. Without the conversion, multiplying a string by 2 would repeat it (""9898"") rather than doing arithmetic. After int(""98"") = 98, and 98 * 2 = 196.",2026-05-08 16:06:40.849317+00,196,python
+S020,simple,strings,fill_in_the_blank,"Fill in the blank so the code prints: Hello, World!
+
+place = ""World""
+print(f""Hello, ___!"")","place = ""World""
+print(f""Hello, {place}!"")",,"Inside an f-string (a string prefixed with f), any expression in curly braces {} is evaluated and inserted into the string. Writing {place} tells Python to replace it with the value of the variable place, producing ""Hello, World!"".",2026-05-08 16:06:40.849317+00,"Hello, World!",python
+S021,simple,variables,output_prediction,"What will the following code print?
+
+val = 10
+val = val * 2
+val = val - 5
+print(val)",15,,"Python runs assignments from top to bottom. val starts at 10, then becomes 10 * 2 = 20, then becomes 20 - 5 = 15. Each assignment overwrites the previous value of val.",2026-05-08 16:06:40.849317+00,15,python
+S022,simple,operators,output_prediction,"What will the following code print?
+
+a = 9
+b = 4
+print(a // b)
+print(a % b)","2
+1",,"// is floor division — it divides and rounds down to the nearest integer (9 // 4 = 2). % is the modulo operator — it gives the remainder (9 % 4 = 1, because 4 × 2 = 8 and 9 − 8 = 1). Each print() outputs on its own line.",2026-05-08 16:06:40.849317+00,"2
+1",python
+S023,simple,strings,output_prediction,"What will the following code print?
+
+word = ""orange""
+print(word[1])
+print(word[-2])","r
+g",,"word[1] accesses the character at index 1, which is 'r' (o=0, r=1). word[-2] counts from the end: index -1 is 'e', so -2 is 'g'. Each print() outputs one character on its own line.",2026-05-08 16:06:40.849317+00,"r
+g",python
+S024,simple,conditionals,output_prediction,"What will the following code print?
+
+num = 0
+if num:
+    print(""truthy"")
+else:
+    print(""falsy"")",falsy,,"In Python, 0 is considered falsy — it behaves like False when used as a condition. The if block requires a truthy value to run, so since num is 0, the else block runs and ""falsy"" is printed.",2026-05-08 16:06:40.849317+00,falsy,python
+S025,simple,loops,output_prediction,"What will the following code print?
+
+result = 1
+for i in range(1, 4):
+    result = result * i
+print(result)",6,,"range(1, 4) generates 1, 2, 3. The loop multiplies result by each value in turn: 1 * 1 = 1, 1 * 2 = 2, 2 * 3 = 6. After the loop finishes, print(result) outputs 6.",2026-05-08 16:06:40.849317+00,6,python
+S026,simple,lists,output_prediction,"What will the following code print?
+
+nums = [5, 3, 8, 1, 9, 2]
+print(sorted(nums))","[1, 2, 3, 5, 8, 9]",,"sorted() returns a new list with the elements arranged in ascending order (smallest to largest by default). It does not modify the original list. The output is the sorted version of [5, 3, 8, 1, 9, 2].",2026-05-08 16:06:40.849317+00,"[1, 2, 3, 5, 8, 9]",python
+S027,simple,builtins,output_prediction,"What will the following code print?
+
+words = [""banana"", ""apple"", ""cherry""]
+print(sorted(words))","['apple', 'banana', 'cherry']",,"sorted() works on lists of strings too, sorting them alphabetically in ascending order. ""apple"" comes before ""banana"", which comes before ""cherry"". The result is a new sorted list; the original words list is unchanged.",2026-05-08 16:06:40.849317+00,"['apple', 'banana', 'cherry']",python
+S028,simple,variables,what_is_the_result,"What is the result of the following expression?
+
+type(3.14)",<class 'float'>,,3.14 is a floating-point number (a number with a decimal point). Python's type() function returns its type as <class 'float'>. This is different from int (whole numbers) or str (text).,2026-05-08 16:06:40.849317+00,<class 'float'>,python
+S029,simple,tuples,what_is_the_result,"What is the result of the following expression?
+
+coords = (10, 20, 30)
+coords[1]",20,,"Tuples support indexing just like lists, starting at 0. Index 0 is 10, index 1 is 20, and index 2 is 30. coords[1] returns the element at index 1, which is 20.",2026-05-08 16:06:40.849317+00,20,python
+S030,simple,loops,spot_the_bug,"The following code is supposed to print 1, 2, 3, 4 but instead runs forever. Identify the bug and fix it.
+
+count = 1
+while count < 5:
+    print(count)
+count += 1","count = 1
+while count < 5:
+    print(count)
+    count += 1",,"Because count += 1 is not indented under the while block, it never executes during the loop. count stays at 1 forever, the condition count < 5 is always True, and the loop never ends. Moving count += 1 inside the loop ensures count grows each iteration until it reaches 5.",2026-05-08 16:06:40.849317+00,"1
+2
+3
+4",python
+TEST01,simple,variables,write_the_code,Write code that stores the integer 5 in a variable called x and prints it.,x = 5 print(x),,"A normal, fully valid, well-formed record. Use this as the baseline sanity check: create/import/edit/delete should all work cleanly on this row before testing edge cases.",2026-07-15 16:21:38.085+00,5,python
+TEST02,expert,security,write_the_code,Write a function that returns this exact string: <script>alert('XSS')</script>,"def get_string(): return ""<script>alert('XSS')</script>"" print(get_string())",,"Tests stored XSS handling. The question/answer/expected_output fields contain raw HTML/JS. A safe admin panel should escape this when rendering it in the UI, not execute it as a script or an alert popup.",2026-07-15 16:25:07.68+00,<script>alert('XSS')</script>,python
+TEST03,hard,security,fill_in_the_blank,"Fill in the blank with a value for `name` that breaks out of the string literal (a SQL-injection payload), then print the resulting query:
+
+name = ___
+query = ""SELECT * FROM users WHERE name='"" + name + ""'""
+print(query)","name = ""'; DROP TABLE users; --""
+query = ""SELECT * FROM users WHERE name='"" + name + ""'""
+print(query)",,"The answer field itself is a classic SQL injection payload. Tests whether the admin panel's search/filter/save logic uses parameterized queries and is not vulnerable when this literal string is stored, searched, or displayed.",2026-07-15 16:37:17.539+00,SELECT * FROM users WHERE name=''; DROP TABLE users; --',python

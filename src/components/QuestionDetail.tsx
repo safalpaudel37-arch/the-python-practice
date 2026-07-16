@@ -4,7 +4,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn, formatTopic } from '@/lib/utils';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { TYPE_SHORT_LABELS } from '@/lib/config';
-import { parseSqlQuestion } from '@/lib/sql/parse';
+import { splitPrompt } from '@/lib/questions';
 import type { Question } from '@/lib/types';
 
 interface Props {
@@ -14,23 +14,17 @@ interface Props {
 }
 
 /**
- * For fill_in_the_blank the code template is pre-loaded into the editor
- * (see HomeClient's savedCode), so the prompt shows only the prose part.
+ * For fill_in_the_blank (blank template) and spot_the_bug (buggy code) the code is
+ * pre-loaded into the editor (see HomeClient's savedCode), so the prompt shows only
+ * the prose part. `codeInEditor` selects the matching hint below.
  */
-function promptText(question: Question): { text: string; blanksInEditor: boolean } {
-  if (question.type !== 'fill_in_the_blank') {
-    return { text: question.question, blanksInEditor: false };
+function promptText(question: Question): { text: string; codeInEditor: 'blanks' | 'bug' | null } {
+  if (question.type !== 'fill_in_the_blank' && question.type !== 'spot_the_bug') {
+    return { text: question.question, codeInEditor: null };
   }
-  if (question.language === 'sql') {
-    const { promptBefore, templateAfter } = parseSqlQuestion(question.question);
-    if (templateAfter) return { text: promptBefore, blanksInEditor: true };
-    return { text: question.question, blanksInEditor: false };
-  }
-  const sepIdx = question.question.indexOf('\n\n');
-  if (sepIdx !== -1) {
-    return { text: question.question.slice(0, sepIdx).trim(), blanksInEditor: true };
-  }
-  return { text: question.question, blanksInEditor: false };
+  const { prose, code } = splitPrompt(question);
+  if (!code) return { text: question.question, codeInEditor: null };
+  return { text: prose, codeInEditor: question.type === 'spot_the_bug' ? 'bug' : 'blanks' };
 }
 
 export default function QuestionDetail({ question, open, onOpenChange }: Props) {
@@ -74,10 +68,15 @@ export default function QuestionDetail({ question, open, onOpenChange }: Props) 
             <pre className="whitespace-pre-wrap rounded-xl bg-code-bg p-3.5 font-mono text-xs leading-relaxed text-code-ink">
               {prompt.text}
             </pre>
-            {prompt.blanksInEditor && (
+            {prompt.codeInEditor === 'blanks' && (
               <p className="mt-2 text-[12px] text-ink-3">
                 Fill in the <span className="font-mono text-copper">___</span> blanks directly in
                 the code editor below.
+              </p>
+            )}
+            {prompt.codeInEditor === 'bug' && (
+              <p className="mt-2 text-[12px] text-ink-3">
+                Find and fix the bug directly in the code editor below.
               </p>
             )}
           </div>

@@ -1,0 +1,1377 @@
+id,tier,topic,type,question,answer,alternative_answer,explanation,expected_output,created_at
+sql-e01,expert,CTEs,write_the_code,"Using a CTE named `dept_totals`, calculate the total salary for each department. Then query the CTE to return the department name and total salary, ordered by total salary descending.","WITH dept_totals AS (SELECT d.name AS department, SUM(e.salary) AS total_salary FROM departments d JOIN employees e ON e.department_id = d.id GROUP BY d.name) SELECT department, total_salary FROM dept_totals ORDER BY total_salary DESC;",,A Common Table Expression (CTE) defined with `WITH name AS (...)` creates a named temporary result set. It makes complex queries more readable by splitting them into named steps.,,2026-05-28 01:34:26.115393+00
+sql-e02,expert,Advanced Aggregation,write_the_code,"For each product category, show: the number of products (`product_count`), the average price rounded to 2 decimal places (`avg_price`), and the total stock (`total_stock`). Order alphabetically by category.","SELECT category, COUNT(*) AS product_count, ROUND(AVG(price), 2) AS avg_price, SUM(stock) AS total_stock FROM products GROUP BY category ORDER BY category;",,Multiple aggregate functions can appear in a single SELECT. GROUP BY category creates one output row per unique category.,,2026-05-28 01:34:26.115393+00
+sql-h01,hard,Multi-table Queries,write_the_code,"List each order showing: order `id`, customer name (as `customer_name`), product name (as `product_name`), `quantity`, and `status`.","SELECT o.id, c.name AS customer_name, p.name AS product_name, o.quantity, o.status FROM orders o JOIN customers c ON o.customer_id = c.id JOIN products p ON o.product_id = p.id;",,Chain multiple `JOIN` clauses to combine data from three tables. Each JOIN adds a table using its matching foreign key.,,2026-05-28 01:34:26.115393+00
+sql-h02,hard,Multi-table Queries,write_the_code,"For each department, show the department name and the total salary of all its employees (label it `total_salary`). Order by total salary descending.","SELECT d.name AS department, SUM(e.salary) AS total_salary FROM departments d JOIN employees e ON e.department_id = d.id GROUP BY d.name ORDER BY total_salary DESC;",,"This combines JOIN, GROUP BY, and SUM. Engineering has the highest total ($288,000) because it has three employees.",,2026-05-28 01:34:26.115393+00
+sql-h03,hard,Subqueries,write_the_code,Find all employees whose salary is higher than the company-wide average salary. Return all columns.,SELECT * FROM employees WHERE salary > (SELECT AVG(salary) FROM employees);,,"The inner subquery runs first and returns the average salary (81,500). The outer query then filters employees above that value: Alice (95k), Carol (105k), and Frank (88k).",,2026-05-28 01:34:26.115393+00
+sql-h04,hard,Multi-table Queries,write_the_code,Calculate the total revenue (quantity × price) for each order status. Show the `status` and `total_revenue` (rounded to 2 decimal places). Order by status alphabetically.,"SELECT o.status, ROUND(SUM(o.quantity * p.price), 2) AS total_revenue FROM orders o JOIN products p ON o.product_id = p.id GROUP BY o.status ORDER BY o.status;",,"You can use arithmetic expressions inside aggregate functions. `SUM(quantity * price)` computes per-order revenue and sums by group. Result: delivered 1859.96, processing 1499.98, shipped 139.96.",,2026-05-28 01:34:26.115393+00
+sql-i01,intermediate,Aggregation,write_the_code,Count the total number of products in the products table. Label the result column `total_products`.,SELECT COUNT(*) AS total_products FROM products;,,`COUNT(*)` counts all rows. The `AS` keyword creates an alias for the result column. There are 5 products in total.,,2026-05-28 01:34:26.115393+00
+sql-i02,intermediate,Aggregation,write_the_code,Calculate the total stock across all products. Label the result `total_stock`.,SELECT SUM(stock) AS total_stock FROM products;,,`SUM()` adds up all values in a column. The total stock is 505 (50+200+150+30+75).,,2026-05-28 01:34:26.115393+00
+sql-i03,intermediate,Aggregation,write_the_code,"Find the average price of all products, rounded to 2 decimal places. Label the result `avg_price`.","SELECT ROUND(AVG(price), 2) AS avg_price FROM products;",,"`AVG()` computes the mean. `ROUND(value, 2)` rounds to 2 decimal places. The average product price is 415.99.",,2026-05-28 01:34:26.115393+00
+sql-i04,intermediate,Aggregation,write_the_code,Count how many customers are from each country. Show the `country` and the count (label it `customer_count`). Order alphabetically by country.,"SELECT country, COUNT(*) AS customer_count FROM customers GROUP BY country ORDER BY country;",,"`GROUP BY country` groups rows with the same country. `COUNT(*)` counts rows in each group. Result: Canada 1, Spain 1, UK 1, USA 2.",,2026-05-28 01:34:26.115393+00
+sql-i05,intermediate,Aggregation,write_the_code,Find product categories that contain more than one product. Show the `category` and count (label it `product_count`).,"SELECT category, COUNT(*) AS product_count FROM products GROUP BY category HAVING COUNT(*) > 1;",,`HAVING` filters groups after aggregation (unlike `WHERE` which filters rows). Only Electronics has more than 1 product (it has 3).,,2026-05-28 01:34:26.115393+00
+sql-i06,intermediate,JOINs,write_the_code,"List all orders. For each order show the order `id`, the customer name (label it `customer_name`), the `order_date`, and `status`.","SELECT o.id, c.name AS customer_name, o.order_date, o.status FROM orders o JOIN customers c ON o.customer_id = c.id;",,`JOIN` (inner join) combines rows from two tables where the `ON` condition matches. Table aliases `o` and `c` keep the query readable.,,2026-05-28 01:34:26.115393+00
+sql-i07,intermediate,JOINs,write_the_code,Find the distinct names of customers who have placed at least one order with 'delivered' status. Order by name alphabetically.,SELECT DISTINCT c.name FROM customers c JOIN orders o ON o.customer_id = c.id WHERE o.status = 'delivered' ORDER BY c.name;,,`DISTINCT` removes duplicate names (a customer with multiple delivered orders would appear more than once without it). Alice Johnson and David Lee each have delivered orders.,,2026-05-28 01:34:26.115393+00
+sql-i08,intermediate,JOINs,write_the_code,Count how many orders each customer has placed. Show the customer name and their order count (label it `order_count`). Order by name alphabetically.,"SELECT c.name, COUNT(o.id) AS order_count FROM customers c JOIN orders o ON o.customer_id = c.id GROUP BY c.name ORDER BY c.name;",,Combining `JOIN` with `GROUP BY` lets you aggregate across tables. `COUNT(o.id)` counts non-null order ids per customer group.,,2026-05-28 01:34:26.115393+00
+sql-s01,simple,Basic SELECT,write_the_code,Write a query to retrieve all columns and every row from the `customers` table.,SELECT * FROM customers;,,"`SELECT *` selects every column. `FROM customers` specifies the table. Without a `WHERE` clause, all rows are returned.",,2026-05-28 01:34:26.115393+00
+sql-s02,simple,Basic SELECT,write_the_code,Retrieve only the `name` and `country` columns from the `customers` table.,"SELECT name, country FROM customers;",,"Instead of `SELECT *`, list specific column names separated by commas. This is more efficient and makes queries easier to read.",,2026-05-28 01:34:26.115393+00
+sql-s03,simple,Basic SELECT,write_the_code,Find all customers who are from the USA. Return all columns.,SELECT * FROM customers WHERE country = 'USA';,,The `WHERE` clause filters rows. String values in SQL must be wrapped in single quotes. This returns Alice Johnson and David Lee.,,2026-05-28 01:34:26.115393+00
+sql-s04,simple,Basic SELECT,write_the_code,Find all products with a price greater than 200. Return all columns.,SELECT * FROM products WHERE price > 200;,,Use `>` for numeric comparisons — no quotes needed for numbers. This returns the Laptop Pro (1299.99) and the Standing Desk (499.99).,,2026-05-28 01:34:26.115393+00
+sql-s05,simple,Basic SELECT,write_the_code,List all products ordered by price from most expensive to cheapest. Return all columns.,SELECT * FROM products ORDER BY price DESC;,,`ORDER BY` sorts results. `DESC` means descending (highest first). The default without `DESC` is `ASC` (ascending).,,2026-05-28 01:34:26.115393+00
+sql-s06,simple,Basic SELECT,write_the_code,Show the name and price of the 3 most expensive products.,"SELECT name, price FROM products ORDER BY price DESC LIMIT 3;",,"`LIMIT 3` restricts the result to 3 rows. Combined with `ORDER BY price DESC`, this returns the Laptop Pro, Standing Desk, and Noise Cancelling Headphones.",,2026-05-28 01:34:26.115393+00
+sql-s07,simple,Filtering,write_the_code,Find all Electronics products that cost less than $200. Return all columns.,SELECT * FROM products WHERE category = 'Electronics' AND price < 200;,,The `AND` operator requires both conditions to be true. This returns the Wireless Mouse ($29.99) and Noise Cancelling Headphones ($199.99).,,2026-05-28 01:34:26.115393+00
+SQLA001,expert,jsonb,output_prediction,"Given this table called profiles:
+
+| id | data                                          |
+|----|-----------------------------------------------|
+| 1  | {""name"": ""Alice"", ""age"": 30}                  |
+| 2  | {""name"": ""Bob"", ""age"": 25, ""city"": ""London""}  |
+
+What does this query return?
+
+SELECT id, data->>'name' AS name, data->>'city' AS city
+FROM profiles;","1 | Alice | NULL
+2 | Bob | London",,"The ->> operator extracts a JSONB field as text. If the key does not exist in the document, it returns NULL rather than an error. Row 1 has no 'city' key so that column is NULL. The -> operator would return JSONB type; ->> returns plain text — use ->> when you need to compare or display the value as a string.",,2026-05-22 16:11:13.277411+00
+SQLA002,expert,jsonb,write_the_code,Write a query to find all rows from the events table where the JSONB column payload contains a key called 'user_id' with the value 42. The payload column is of type JSONB.,"SELECT * FROM events
+WHERE payload @> '{""user_id"": 42}'::jsonb;",SELECT * FROM events WHERE payload->>'user_id' = '42';,"The @> operator checks if the left JSONB value contains the right JSONB value as a subset. Casting the literal string to JSONB with ::jsonb is required. This approach is index-friendly — a GIN index on payload can accelerate @> queries. The alternative using ->> works but compares strings, requires a cast for numeric comparison, and cannot use a GIN index as efficiently.",,2026-05-22 16:11:13.277411+00
+SQLA003,expert,jsonb,fill_in_the_blank,"Complete the query to check whether the JSONB column settings contains the key 'theme':
+
+SELECT id FROM users WHERE settings ___ 'theme';",SELECT id FROM users WHERE settings ? 'theme';,,"The ? operator tests whether a text string exists as a top-level key in a JSONB object. It returns true if the key is present regardless of its value. This is more precise than @> when you only care about key existence, not the value. A GIN index on the column supports ? efficiently.",,2026-05-22 16:11:13.277411+00
+SQLA004,expert,jsonb,write_the_code,"Write a query to update the JSONB column metadata on the products table. For the row with id = 5, add or overwrite a key 'featured' with the boolean value true without replacing the rest of the JSONB document.","UPDATE products
+SET metadata = metadata || '{""featured"": true}'::jsonb
+WHERE id = 5;","UPDATE products SET metadata = jsonb_set(metadata, '{featured}', 'true') WHERE id = 5;","The || operator merges two JSONB objects, with right-side keys overwriting left-side keys on conflict. jsonb_set(target, path, value) is the explicit alternative — it sets a specific path and is better for nested keys. Both preserve existing keys. Assigning a whole new JSONB literal would erase everything else in the column.",,2026-05-22 16:11:13.277411+00
+SQLA005,expert,jsonb,output_prediction,"Given this table called orders:
+
+| id | details                                              |
+|----|------------------------------------------------------|
+| 1  | {""items"": [{""sku"": ""A1"", ""qty"": 2}, {""sku"": ""B2"", ""qty"": 1}]} |
+
+What does this query return?
+
+SELECT id, details->'items'->0->>'sku' AS first_sku
+FROM orders;",1 | A1,,Chained -> operators traverse nested JSONB. details->'items' returns the array. ->0 accesses the first element (0-indexed). ->>'sku' extracts the sku key as text. Mixing -> (returns JSONB) and ->> (returns text) is intentional — use -> for intermediate traversal steps and ->> only at the final extraction where you want plain text.,,2026-05-22 16:11:13.277411+00
+SQLA006,expert,jsonb,write_the_code,"Write a query to expand each key-value pair of the JSONB column attributes from the products table into separate rows, with columns key and value. Use the jsonb_each_text function.","SELECT p.id, kv.key, kv.value
+FROM products p,
+jsonb_each_text(p.attributes) AS kv(key, value);",,"jsonb_each_text is a set-returning function that expands a JSONB object into one row per key-value pair, with values cast to text. Using it in the FROM clause (implicit LATERAL join) means it is called once per product row and its results are joined back to that row. This pattern is essential for querying semi-structured data relationally.",,2026-05-22 16:11:13.277411+00
+SQLA007,expert,arrays,output_prediction,"Given this table called posts:
+
+| id | title       | tags                  |
+|----|-------------|------------------------|
+| 1  | Intro       | {sql, database}        |
+| 2  | expert PG | {postgresql, database} |
+| 3  | Python Tips | {python, scripting}    |
+
+What does this query return?
+
+SELECT title FROM posts
+WHERE 'database' = ANY(tags);","Intro
+expert PG",,ANY(array) returns true if the scalar value on the left matches any element in the array. Here it finds all posts where 'database' is one of the tags. This is the idiomatic way to test membership in a PostgreSQL array column and can be accelerated with a GIN index on the tags column.,,2026-05-22 16:11:13.277411+00
+SQLA008,expert,arrays,write_the_code,"Write a query to return each user's id and their tags expanded into individual rows, one tag per row. Use the users table with columns: id, tags (text array).","SELECT id, unnest(tags) AS tag
+FROM users;",,"unnest(array) is a set-returning function that expands an array into a set of rows, one element per row. This is the standard way to normalise array data for aggregation, filtering, or joining. If a user has 3 tags, unnest produces 3 rows for that user, each with the same id.",,2026-05-22 16:11:13.277411+00
+SQLA009,expert,arrays,fill_in_the_blank,"Complete the query to collect all product names per category into a single array column called product_list:
+
+SELECT category, ___(name) AS product_list
+FROM products
+GROUP BY category;","SELECT category, array_agg(name) AS product_list
+FROM products
+GROUP BY category;",,"array_agg is an aggregate function that collects values from multiple rows into a PostgreSQL array. It is the array equivalent of string_agg. The result type matches the input column type — here text[], an array of text. You can add ORDER BY inside array_agg to control element order: array_agg(name ORDER BY name).",,2026-05-22 16:11:13.277411+00
+SQLA010,expert,arrays,write_the_code,Write a query to find all products whose tags array contains both 'sale' and 'featured'. Use the products table with a tags column of type text[].,"SELECT * FROM products
+WHERE tags @> ARRAY['sale', 'featured'];",,"The @> operator on arrays checks whether the left array contains all elements of the right array. ARRAY['sale', 'featured'] constructs an array literal. This requires both values to be present but does not care about order or other elements in the array. A GIN index on tags supports this containment check efficiently.",,2026-05-22 16:11:13.277411+00
+SQLA011,expert,full_text_search,output_prediction,"What does this query return?
+
+SELECT to_tsvector('english', 'The quick brown fox jumps over the lazy dog');",'brown':3 'dog':9 'fox':4 'jump':5 'lazi':8 'quick':2,,"to_tsvector converts text into a tsvector — a sorted list of lexemes (normalised tokens) with their positions. Stop words like 'the' and 'over' are removed. Words are stemmed: 'jumps' becomes 'jump', 'lazy' becomes 'lazi'. The numbers are positional information used for phrase searching. This is the core data structure PostgreSQL uses for full-text indexing.",,2026-05-22 16:11:13.277411+00
+SQLA012,expert,full_text_search,write_the_code,"Write a query to find all articles from the articles table (columns: id, title, body) where the body contains the words 'database' and 'performance'. Use PostgreSQL full-text search.","SELECT id, title
+FROM articles
+WHERE to_tsvector('english', body) @@ to_tsquery('english', 'database & performance');",,"The @@ operator matches a tsvector against a tsquery. to_tsvector normalises the body text; to_tsquery parses the search expression where & means AND. For production use, store a pre-computed tsvector column and index it with GIN to avoid recomputing to_tsvector on every query.",,2026-05-22 16:11:13.277411+00
+SQLA013,expert,full_text_search,fill_in_the_blank,"Complete the statement to create a GIN index on a pre-computed tsvector column called search_vector in the articles table:
+
+CREATE INDEX idx_articles_fts ON articles USING ___ (search_vector);",CREATE INDEX idx_articles_fts ON articles USING GIN (search_vector);,,"GIN (Generalised Inverted Index) is the correct index type for tsvector columns and JSONB containment queries. It stores a mapping from each lexeme to the rows containing it, making full-text search fast. GiST is the alternative but is slower to query and faster to update — GIN is preferred for read-heavy search workloads.",,2026-05-22 16:11:13.277411+00
+SQLA014,expert,full_text_search,write_the_code,"Write a query to return articles ranked by relevance to the search term 'postgresql index'. Use the articles table with columns: id, title, body. Order by relevance descending.","SELECT id, title,
+  ts_rank(to_tsvector('english', body), to_tsquery('english', 'postgresql & index')) AS relevance
+FROM articles
+WHERE to_tsvector('english', body) @@ to_tsquery('english', 'postgresql & index')
+ORDER BY relevance DESC;",,"ts_rank scores how well a tsvector matches a tsquery based on term frequency and position. Higher scores mean more relevant documents. The WHERE clause filters to only matching articles first; ts_rank is then computed only on those rows. In production, materialise the tsvector as a generated column and index it to avoid scanning all rows.",,2026-05-22 16:11:13.277411+00
+SQLA015,expert,recursive,write_the_code,"Write a recursive CTE to return all employees and their level in the reporting hierarchy. The employees table has columns: id, name, manager_id (NULL for the CEO). Start with the CEO at level 1.","WITH RECURSIVE hierarchy AS (
+  SELECT id, name, manager_id, 1 AS level
+  FROM employees
+  WHERE manager_id IS NULL
+
+  UNION ALL
+
+  SELECT e.id, e.name, e.manager_id, h.level + 1
+  FROM employees e
+  JOIN hierarchy h ON e.manager_id = h.id
+)
+SELECT id, name, level
+FROM hierarchy
+ORDER BY level, name;",,WITH RECURSIVE requires two parts separated by UNION ALL: the anchor (base case — the CEO with no manager) and the recursive term (joining each employee to their already-found manager). PostgreSQL iterates until no new rows are added. This is the standard pattern for tree and graph traversal in SQL.,,2026-05-22 16:11:13.277411+00
+SQLA016,expert,recursive,fill_in_the_blank,"Complete the recursive CTE keyword that enables the self-referencing query:
+
+WITH ___ org_tree AS (
+  SELECT id, name, manager_id, 0 AS depth
+  FROM employees WHERE manager_id IS NULL
+  UNION ALL
+  SELECT e.id, e.name, e.manager_id, ot.depth + 1
+  FROM employees e JOIN org_tree ot ON e.manager_id = ot.id
+)
+SELECT * FROM org_tree;","WITH RECURSIVE org_tree AS (
+  SELECT id, name, manager_id, 0 AS depth
+  FROM employees WHERE manager_id IS NULL
+  UNION ALL
+  SELECT e.id, e.name, e.manager_id, ot.depth + 1
+  FROM employees e JOIN org_tree ot ON e.manager_id = ot.id
+)
+SELECT * FROM org_tree;",,The RECURSIVE keyword after WITH is mandatory to enable a CTE to reference itself. Without it PostgreSQL will raise an error when the CTE body references its own name. RECURSIVE does not force recursion — it just permits it. Non-recursive CTEs inside the same WITH block are also valid when RECURSIVE is present.,,2026-05-22 16:11:13.277411+00
+SQLA017,expert,recursive,write_the_code,Write a recursive CTE to generate a sequence of integers from 1 to 10 without using any table. Return a single column called n.,"WITH RECURSIVE counter AS (
+  SELECT 1 AS n
+  UNION ALL
+  SELECT n + 1 FROM counter WHERE n < 10
+)
+SELECT n FROM counter;",,"The anchor produces the first value (1). Each recursive step adds 1 to the previous n. The WHERE n < 10 terminates the recursion — without a termination condition, the query would run forever. This pattern is useful for generating date ranges, test data, or sequence numbers without a table.",,2026-05-22 16:11:13.277411+00
+SQLA018,expert,materialized_views,write_the_code,"Write a statement to create a materialized view called monthly_revenue_summary that stores the total revenue per month from the orders table (columns: order_date, total). Then write the statement to refresh it.","CREATE MATERIALIZED VIEW monthly_revenue_summary AS
+SELECT DATE_TRUNC('month', order_date) AS month,
+       SUM(total) AS revenue
+FROM orders
+GROUP BY DATE_TRUNC('month', order_date)
+ORDER BY month;
+
+REFRESH MATERIALIZED VIEW monthly_revenue_summary;",,"A materialized view physically stores the query result on disk, making subsequent reads fast regardless of the underlying table size. Unlike a regular view, it does not re-run the query on each access. REFRESH MATERIALIZED VIEW re-executes the query and replaces the stored data. Use REFRESH MATERIALIZED VIEW CONCURRENTLY to allow reads during refresh, which requires a unique index on the view.",,2026-05-22 16:11:13.277411+00
+SQLA019,expert,materialized_views,fill_in_the_blank,"Complete the statement to refresh a materialized view without blocking concurrent reads:
+
+REFRESH MATERIALIZED VIEW ___ sales_summary;",REFRESH MATERIALIZED VIEW CONCURRENTLY sales_summary;,,"REFRESH MATERIALIZED VIEW without CONCURRENTLY acquires an exclusive lock, blocking all reads during the refresh. CONCURRENTLY builds a new version of the data in the background and swaps it atomically, allowing reads throughout. It requires a unique index on the materialized view and is slightly slower to execute but essential for production use.",,2026-05-22 16:11:13.277411+00
+SQLA020,expert,materialized_views,write_the_code,Write a statement to create a unique index called idx_mv_month on the month column of the materialized view monthly_revenue_summary. This index is required before the view can be refreshed concurrently.,CREATE UNIQUE INDEX idx_mv_month ON monthly_revenue_summary (month);,,"REFRESH MATERIALIZED VIEW CONCURRENTLY requires at least one unique index on the materialized view so PostgreSQL can identify which rows to add, update, or remove during the refresh. Without a unique index, CONCURRENTLY is not permitted and will raise an error. The index is created the same way as on a regular table.",,2026-05-22 16:11:13.277411+00
+SQLA021,expert,partitioning,write_the_code,"Write the DDL to create a range-partitioned table called events with columns: id (bigint), event_date (date), payload (text). Partition by event_date. Then create two partitions: events_2024 for dates in 2024 and events_2025 for dates in 2025.","CREATE TABLE events (
+  id BIGINT NOT NULL,
+  event_date DATE NOT NULL,
+  payload TEXT
+) PARTITION BY RANGE (event_date);
+
+CREATE TABLE events_2024
+  PARTITION OF events
+  FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+
+CREATE TABLE events_2025
+  PARTITION OF events
+  FOR VALUES FROM ('2025-01-01') TO ('2026-01-01');",,"PARTITION BY RANGE declares the partitioning strategy on the parent table. Each child partition is created with PARTITION OF ... FOR VALUES FROM ... TO ..., where the range is inclusive on the lower bound and exclusive on the upper bound. PostgreSQL automatically routes inserts to the correct partition and can prune irrelevant partitions during queries — a major performance benefit for time-series data.",,2026-05-22 16:11:13.277411+00
+SQLA022,expert,partitioning,fill_in_the_blank,"Complete the statement to create a list partition of the orders table for orders from the 'EU' and 'UK' regions:
+
+CREATE TABLE orders_europe
+  PARTITION OF orders
+  FOR VALUES ___ ('EU', 'UK');","CREATE TABLE orders_europe
+  PARTITION OF orders
+  FOR VALUES IN ('EU', 'UK');",,"List partitioning uses FOR VALUES IN (...) to specify the discrete values that route to a partition. This is appropriate when the partition key has a known, finite set of values — like region codes, status values, or categories. Range partitioning suits continuous values like dates or numbers.",,2026-05-22 16:11:13.277411+00
+SQLA023,expert,partitioning,write_the_code,"Write a query to attach an existing table called orders_legacy as a partition of the orders parent table, covering dates from '2020-01-01' to '2023-01-01'.","ALTER TABLE orders
+ATTACH PARTITION orders_legacy
+FOR VALUES FROM ('2020-01-01') TO ('2023-01-01');",,ATTACH PARTITION adds an existing table as a child partition of a partitioned parent without copying data. PostgreSQL validates that all existing rows in orders_legacy satisfy the partition constraint before completing the attach. This is the standard way to incorporate historical data tables into a partitioned schema.,,2026-05-22 16:11:13.277411+00
+SQLA024,expert,query_plan,write_the_code,Write the statement to display the actual execution plan with real runtime statistics for the following query on the orders table: SELECT * FROM orders WHERE customer_id = 42;,EXPLAIN ANALYZE SELECT * FROM orders WHERE customer_id = 42;,,EXPLAIN shows the query plan without executing the query. EXPLAIN ANALYZE actually executes it and adds real timing and row count statistics alongside the planner's estimates. Comparing estimated vs actual rows reveals whether table statistics are stale (fix with ANALYZE) and whether the planner is choosing efficient join and scan strategies.,,2026-05-22 16:11:13.277411+00
+SQLA025,expert,query_plan,fill_in_the_blank,"Complete the EXPLAIN option to output the query plan as JSON for easier programmatic parsing:
+
+EXPLAIN (ANALYZE, FORMAT ___) SELECT * FROM products WHERE category = 'electronics';","EXPLAIN (ANALYZE, FORMAT JSON) SELECT * FROM products WHERE category = 'electronics';",,"EXPLAIN supports multiple output formats: TEXT (default, human-readable), JSON, XML, and YAML. JSON is useful when you want to parse the plan programmatically or feed it into a query analysis tool. The FORMAT option is specified inside the parenthesised option list alongside other options like ANALYZE, BUFFERS, and VERBOSE.",,2026-05-22 16:11:13.277411+00
+SQLA026,expert,query_plan,output_prediction,"You run EXPLAIN ANALYZE on a query and see this node in the plan:
+
+Seq Scan on orders  (cost=0.00..4820.00 rows=1 width=100)
+                    (actual time=0.05..98.3 rows=85420 loops=1)
+
+What does the large discrepancy between estimated rows (1) and actual rows (85420) most likely indicate, and what is the standard fix?",Stale table statistics. The planner estimated 1 row but found 85420. Run ANALYZE orders to update the statistics.,,"The PostgreSQL query planner uses column statistics (collected by ANALYZE or autovacuum) to estimate row counts. A severe mismatch means the statistics are outdated — usually after bulk inserts, deletes, or an initial data load. Running ANALYZE orders refreshes the statistics so the planner can make accurate cost estimates and choose better plans, such as an index scan instead of a sequential scan.",,2026-05-22 16:11:13.277411+00
+SQLA027,expert,security,write_the_code,"Write the SQL to enable row-level security on the documents table and create a policy called user_isolation that allows users to SELECT only their own rows. Assume a current_user_id() function returns the logged-in user's id, and the documents table has an owner_id column.","ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY user_isolation ON documents
+FOR SELECT
+USING (owner_id = current_user_id());",,"ENABLE ROW LEVEL SECURITY activates RLS on the table — by default this blocks all access until policies are defined. CREATE POLICY defines the rule: the USING clause is evaluated for each row during SELECT, UPDATE, and DELETE; only rows where the expression is true are visible or modifiable. Superusers and table owners bypass RLS by default unless FORCE ROW LEVEL SECURITY is also set.",,2026-05-22 16:11:13.277411+00
+SQLA028,expert,security,fill_in_the_blank,"Complete the policy to restrict INSERT through row-level security — a user can only insert documents where owner_id matches their own id:
+
+CREATE POLICY insert_own_docs ON documents
+FOR INSERT
+___ CHECK (owner_id = current_user_id());","CREATE POLICY insert_own_docs ON documents
+FOR INSERT
+WITH CHECK (owner_id = current_user_id());",,"For INSERT and UPDATE, RLS uses WITH CHECK instead of USING. USING filters which existing rows are visible or affected. WITH CHECK validates the new row being written — it rejects any INSERT or UPDATE that would produce a row violating the condition. Both clauses can be combined on a single policy for UPDATE: USING checks the old row, WITH CHECK validates the new one.",,2026-05-22 16:11:13.277411+00
+SQLA029,expert,security,write_the_code,"Write the SQL to create a role called reporting_user, grant it SELECT access on the orders and customers tables, and deny it the ability to modify data.","CREATE ROLE reporting_user;
+
+GRANT SELECT ON orders TO reporting_user;
+GRANT SELECT ON customers TO reporting_user;",,"In PostgreSQL, roles are the unified concept for users and groups. CREATE ROLE creates a role with no login by default — add WITH LOGIN for an interactive user. GRANT SELECT gives read access to specific tables. Without explicit grants for INSERT, UPDATE, or DELETE, those operations are denied. This is the principle of least privilege applied at the database level.",,2026-05-22 16:11:13.277411+00
+SQLA030,expert,security,spot_the_bug,"A developer created an RLS policy but reports that the table owner can still see all rows despite the policy. Find what is missing and write the fix.
+
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY owner_only ON messages
+FOR SELECT
+USING (sender_id = current_user_id());",ALTER TABLE messages FORCE ROW LEVEL SECURITY;,,"By default, table owners bypass all RLS policies. ENABLE ROW LEVEL SECURITY applies policies to regular users but not to the owner. FORCE ROW LEVEL SECURITY makes the policies apply to the table owner as well. This is essential in multi-tenant applications where even the connection role (often the table owner) should be restricted to its own data.",,2026-05-22 16:11:13.277411+00
+SQLA031,expert,lateral,write_the_code,"Write a query using a LATERAL join to return each customer's id, name, and the amount of their single most recent order. Use the customers table (columns: id, name) and the orders table (columns: id, customer_id, amount, created_at).","SELECT c.id, c.name, recent.amount
+FROM customers c
+JOIN LATERAL (
+  SELECT amount
+  FROM orders o
+  WHERE o.customer_id = c.id
+  ORDER BY created_at DESC
+  LIMIT 1
+) AS recent ON true;",,"A LATERAL subquery can reference columns from tables listed earlier in the FROM clause — here it uses c.id from the customers row. Without LATERAL, a subquery in FROM cannot reference outer columns. ON true keeps only customers who have at least one order; use LEFT JOIN LATERAL ... ON true to include customers with no orders (returning NULL for amount).",,2026-05-22 16:11:13.277411+00
+SQLA032,expert,lateral,output_prediction,"Given these two tables:
+
+products:
+| id | name    |
+|----|---------|
+| 1  | Widget  |
+| 2  | Gadget  |
+
+prices:
+| product_id | price | effective_date |
+|------------|-------|----------------|
+| 1          | 10    | 2024-01-01     |
+| 1          | 12    | 2024-06-01     |
+| 2          | 50    | 2024-01-01     |
+
+What does this query return?
+
+SELECT p.name, lp.price
+FROM products p
+JOIN LATERAL (
+  SELECT price FROM prices
+  WHERE product_id = p.id
+  ORDER BY effective_date DESC
+  LIMIT 1
+) AS lp ON true;","Widget | 12
+Gadget | 50",,"For each product, the LATERAL subquery fetches the price row with the most recent effective_date using ORDER BY ... DESC LIMIT 1. Widget has two price entries; the latest (12, effective 2024-06-01) is returned. Gadget has one entry (50). This is the most efficient pattern for a latest-row-per-group problem when using a LATERAL join.",,2026-05-22 16:11:13.277411+00
+SQLA033,expert,lateral,fill_in_the_blank,"Complete the query to use a LATERAL join that includes customers even if they have no orders, returning NULL for the order amount:
+
+SELECT c.name, recent.amount
+FROM customers c
+___ JOIN LATERAL (
+  SELECT amount FROM orders
+  WHERE customer_id = c.id
+  ORDER BY created_at DESC LIMIT 1
+) AS recent ON true;","SELECT c.name, recent.amount
+FROM customers c
+LEFT JOIN LATERAL (
+  SELECT amount FROM orders
+  WHERE customer_id = c.id
+  ORDER BY created_at DESC LIMIT 1
+) AS recent ON true;",,"LEFT JOIN LATERAL keeps all rows from the left table (customers) even when the LATERAL subquery returns no rows. For customers with no orders, amount is NULL. A plain JOIN LATERAL (inner join) would exclude customers with no orders entirely. The ON true condition is required syntax — LATERAL joins do not have a traditional join key.",,2026-05-22 16:11:13.277411+00
+SQLA034,expert,extensions,write_the_code,Write the statements to install the uuid-ossp extension and then generate a version 4 (random) UUID.,"CREATE EXTENSION IF NOT EXISTS ""uuid-ossp"";
+
+SELECT uuid_generate_v4();","CREATE EXTENSION IF NOT EXISTS pgcrypto;
+SELECT gen_random_uuid();",CREATE EXTENSION installs an extension into the current database. IF NOT EXISTS prevents errors if it is already installed. uuid_generate_v4() produces a randomly generated UUID. The alternative uses pgcrypto's gen_random_uuid() which is available in PostgreSQL 13+ as a built-in without needing the extension. UUIDs are commonly used as primary keys to avoid sequential id predictability and to support distributed systems.,,2026-05-22 16:11:13.277411+00
+SQLA035,expert,extensions,write_the_code,"Write a query using the pg_trgm extension to find all product names in the products table that are similar to the string 'Wiget' (a likely typo). Return names with a trigram similarity above 0.3, ordered by similarity descending.","CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+SELECT name, similarity(name, 'Wiget') AS sim
+FROM products
+WHERE similarity(name, 'Wiget') > 0.3
+ORDER BY sim DESC;",,"pg_trgm breaks strings into trigrams (overlapping 3-character substrings) and computes a similarity score between 0 and 1. This enables fuzzy string matching — useful for search autocomplete, typo tolerance, and deduplication. A GiST or GIN index on the column using the trgm operator class makes similarity queries fast on large tables.",,2026-05-22 16:11:13.277411+00
+SQLA036,expert,indexes,write_the_code,"Write statements to create three indexes on the products table: (1) a GIN index on the tags column (type text[]) for array containment queries, (2) a GIN index on the attributes column (type JSONB) for JSONB containment queries, and (3) a GiST index on the name column using pg_trgm for fuzzy text search.","CREATE INDEX idx_products_tags ON products USING GIN (tags);
+
+CREATE INDEX idx_products_attributes ON products USING GIN (attributes);
+
+CREATE INDEX idx_products_name_trgm ON products USING GIST (name gist_trgm_ops);",,"GIN is optimal for multi-valued types (arrays, JSONB, tsvector) because it indexes each element individually. GiST is more update-friendly and supports range types and geometric data in addition to trgm. For pg_trgm, both GIN and GiST work — GIN is faster to query, GiST is faster to update. The operator class gist_trgm_ops tells GiST to use the trigram method.",,2026-05-22 16:11:13.277411+00
+SQLA037,expert,indexes,fill_in_the_blank,"Complete the index type for a JSONB column that will be queried with the @> containment operator:
+
+CREATE INDEX idx_events_payload ON events USING ___ (payload);",CREATE INDEX idx_events_payload ON events USING GIN (payload);,,"GIN (Generalised Inverted Index) is the recommended index type for JSONB columns queried with @>, ?, ?|, and ?& operators. The default B-tree index does not support these operators. GIN indexes each key and value in the JSONB document, making containment checks and key existence queries fast across millions of rows.",,2026-05-22 16:11:13.277411+00
+SQLA038,expert,sequences,write_the_code,"Write statements to: (1) create a sequence called invoice_seq starting at 1000, incrementing by 1, and (2) write a query to get the next value from it.","CREATE SEQUENCE invoice_seq
+  START 1000
+  INCREMENT BY 1;
+
+SELECT nextval('invoice_seq');",,"Sequences are database objects that generate unique integer values. nextval advances the sequence and returns the new value atomically — two concurrent sessions can never get the same value. SERIAL and BIGSERIAL column types create and attach a sequence automatically, but explicit sequences give more control over start values, increments, cycling, and sharing across multiple tables.",,2026-05-22 16:11:13.277411+00
+SQLA039,expert,sequences,fill_in_the_blank,"Complete the query to reset the invoice_seq sequence so the next value it returns will be 5000:
+
+SELECT ___(invoice_seq, 5000, false);","SELECT setval(invoice_seq, 5000, false);",,"setval(sequence, value, is_called) sets the current value of a sequence. When the third argument is false, the next call to nextval returns exactly the specified value. When true (the default), the sequence treats value as already consumed and the next nextval returns value + increment. Use false when you want the next invoice to be number 5000.",,2026-05-22 16:11:13.277411+00
+SQLA040,expert,query_plan,write_the_code,"Write a query against the pg_stat_user_tables view to find all tables in the current database that have not been vacuumed in the last 7 days, showing table name and last_autovacuum timestamp.","SELECT relname AS table_name, last_autovacuum
+FROM pg_stat_user_tables
+WHERE last_autovacuum < NOW() - INTERVAL '7 days'
+   OR last_autovacuum IS NULL
+ORDER BY last_autovacuum ASC NULLS FIRST;",,"pg_stat_user_tables is a system view that exposes per-table statistics including last_autovacuum, last_autoanalyze, and dead tuple counts. Tables that have never been vacuumed have NULL for last_autovacuum, so the OR IS NULL clause includes them. Regular vacuuming prevents table bloat from dead tuples and keeps autovacuum-driven statistics fresh for the query planner.",,2026-05-22 16:11:13.277411+00
+SQLA041,expert,query_plan,write_the_code,"Write a query to find the 5 largest tables in the current database by total size (including indexes), using PostgreSQL system catalog functions. Return the table name and total size in a human-readable format.","SELECT
+  relname AS table_name,
+  pg_size_pretty(pg_total_relation_size(relid)) AS total_size
+FROM pg_stat_user_tables
+ORDER BY pg_total_relation_size(relid) DESC
+LIMIT 5;",,pg_total_relation_size returns the total disk space in bytes used by a table including its indexes and TOAST data. pg_size_pretty formats bytes into a human-readable string like '42 MB'. Ordering by the raw byte value (not the pretty string) gives correct numeric ordering. This query is a standard starting point for identifying bloated or unexpectedly large tables.,,2026-05-22 16:11:13.277411+00
+SQLA042,expert,jsonb,write_the_code,Write a query to build a JSONB object for each row in the products table containing only the name and price fields. Return it as a column called summary. Use jsonb_build_object.,"SELECT jsonb_build_object('name', name, 'price', price) AS summary
+FROM products;",,jsonb_build_object takes alternating key-value arguments and constructs a JSONB object. Keys must be text; values can be any type and are automatically cast to their JSONB equivalent. This is useful for building API response payloads or aggregating row data into structured JSON directly in the database.,,2026-05-22 16:11:13.277411+00
+SQLA043,expert,arrays,spot_the_bug,"The query below is supposed to find all users who have the tag 'admin' in their tags array, but it returns an error. Find and fix the bug.
+
+SELECT id, name FROM users
+WHERE tags = 'admin';","SELECT id, name FROM users
+WHERE 'admin' = ANY(tags);",,"You cannot compare an array column to a scalar using =. The = operator would require the entire array to equal the scalar value, which is a type mismatch and raises an error. ANY(tags) correctly checks whether any element in the array matches the scalar. The @> array containment operator is an equally valid alternative.",,2026-05-22 16:11:13.277411+00
+SQLA044,expert,partitioning,spot_the_bug,"The following partitioned table definition fails. Find and fix the bug.
+
+CREATE TABLE logs (
+  id BIGINT PRIMARY KEY,
+  logged_at TIMESTAMP NOT NULL,
+  message TEXT
+) PARTITION BY RANGE (logged_at);","CREATE TABLE logs (
+  id BIGINT NOT NULL,
+  logged_at TIMESTAMP NOT NULL,
+  message TEXT
+) PARTITION BY RANGE (logged_at);",,"In PostgreSQL, a partitioned table cannot have a PRIMARY KEY unless the partition key columns are included in the primary key. A standalone PRIMARY KEY on id alone is not allowed because uniqueness cannot be enforced globally across partitions. The fix is to remove PRIMARY KEY from the parent table definition and define primary keys on individual partitions, or include logged_at in the primary key: PRIMARY KEY (id, logged_at).",,2026-05-22 16:11:13.277411+00
+SQLA045,expert,recursive,spot_the_bug,"The recursive CTE below is supposed to walk a category tree but runs forever. Find and fix the bug.
+
+WITH RECURSIVE category_tree AS (
+  SELECT id, name, parent_id FROM categories WHERE parent_id IS NULL
+  UNION ALL
+  SELECT c.id, c.name, c.parent_id
+  FROM categories c
+  JOIN category_tree ct ON c.parent_id = ct.id
+)
+SELECT * FROM category_tree;","WITH RECURSIVE category_tree AS (
+  SELECT id, name, parent_id, 0 AS depth FROM categories WHERE parent_id IS NULL
+  UNION ALL
+  SELECT c.id, c.name, c.parent_id, ct.depth + 1
+  FROM categories c
+  JOIN category_tree ct ON c.parent_id = ct.id
+  WHERE ct.depth < 100
+)
+SELECT * FROM category_tree;",,"If the categories table has a cycle (a row where parent_id eventually points back to itself), the recursive CTE will loop forever. Adding a depth counter in the anchor and a WHERE ct.depth < 100 guard in the recursive term breaks infinite cycles. In production, also use UNION instead of UNION ALL if you want duplicate row elimination as an additional safety measure, or use a cycle detection array if PostgreSQL version supports it.",,2026-05-22 16:11:13.277411+00
+SQLH001,hard,cte,output_prediction,"Given this table called orders:
+
+| id | customer_id | total |
+|----|-------------|-------|
+| 1  | 1           | 200   |
+| 2  | 2           | 450   |
+| 3  | 1           | 300   |
+| 4  | 3           | 100   |
+| 5  | 2           | 600   |
+
+What does this query return?
+
+WITH customer_totals AS (
+  SELECT customer_id, SUM(total) AS lifetime_value
+  FROM orders
+  GROUP BY customer_id
+)
+SELECT customer_id, lifetime_value
+FROM customer_totals
+WHERE lifetime_value > 500
+ORDER BY lifetime_value DESC;","2 | 1050
+1 | 500",,"The CTE customer_totals computes lifetime value per customer: customer 1 = 500, customer 2 = 1050, customer 3 = 100. The outer query filters to those above 500 and sorts descending. CTEs make multi-step logic readable by naming intermediate result sets.",,2026-05-22 16:11:13.098968+00
+SQLH002,hard,cte,write_the_code,"Write a query using a CTE to find all products whose price is above the average price in their own category. Use the products table with columns: id, name, category, price.","WITH category_avg AS (
+  SELECT category, AVG(price) AS avg_price
+  FROM products
+  GROUP BY category
+)
+SELECT p.name, p.category, p.price
+FROM products p
+JOIN category_avg ca ON p.category = ca.category
+WHERE p.price > ca.avg_price;",,The CTE computes the average price per category once. The outer query joins each product back to its category average and filters those above it. Without a CTE you would need a correlated subquery or a derived table in the FROM clause — the CTE version is cleaner and evaluated only once.,,2026-05-22 16:11:13.098968+00
+SQLH003,hard,cte,write_the_code,"Write a query using two chained CTEs. The first CTE called monthly_sales should calculate total sales per month from the sales table (columns: id, sale_date, amount). The second CTE called ranked_months should rank months by total sales descending. The final SELECT should return the top 3 months.","WITH monthly_sales AS (
+  SELECT DATE_TRUNC('month', sale_date) AS month, SUM(amount) AS total
+  FROM sales
+  GROUP BY DATE_TRUNC('month', sale_date)
+),
+ranked_months AS (
+  SELECT month, total,
+    RANK() OVER (ORDER BY total DESC) AS rnk
+  FROM monthly_sales
+)
+SELECT month, total
+FROM ranked_months
+WHERE rnk <= 3;",,"Chained CTEs are separated by commas after the first WITH keyword. Each CTE can reference the ones defined before it. This pattern breaks complex logic into named, readable steps — monthly aggregation first, ranking second, filtering last.",,2026-05-22 16:11:13.098968+00
+SQLH004,hard,cte,spot_the_bug,"The query below uses a CTE but has a syntax error. Find and fix it.
+
+WITH high_value AS
+  SELECT id, total FROM orders WHERE total > 1000
+SELECT * FROM high_value;","WITH high_value AS (
+  SELECT id, total FROM orders WHERE total > 1000
+)
+SELECT * FROM high_value;",,A CTE body must be wrapped in parentheses. The AS keyword must be followed by ( ... ) enclosing the SELECT statement. Without the parentheses the database cannot determine where the CTE definition ends and the outer query begins.,,2026-05-22 16:11:13.098968+00
+SQLH005,hard,window_functions,output_prediction,"Given this table called sales:
+
+| id | rep      | amount |
+|----|----------|--------|
+| 1  | Alice    | 500    |
+| 2  | Bob      | 800    |
+| 3  | Carol    | 800    |
+| 4  | Dave     | 300    |
+
+What does this query return?
+
+SELECT rep, amount,
+  RANK() OVER (ORDER BY amount DESC) AS rnk,
+  DENSE_RANK() OVER (ORDER BY amount DESC) AS dense_rnk
+FROM sales;","Bob | 800 | 1 | 1
+Carol | 800 | 1 | 1
+Alice | 500 | 3 | 2
+Dave | 300 | 4 | 3",,"RANK skips rank numbers after ties — Bob and Carol both rank 1, then Alice gets rank 3 (skipping 2). DENSE_RANK does not skip — after two rank-1 ties, the next rank is 2. Use DENSE_RANK when you want consecutive rankings and RANK when you want to reflect how many rows are ahead.",,2026-05-22 16:11:13.098968+00
+SQLH006,hard,window_functions,output_prediction,"Given this table called transactions:
+
+| id | account_id | amount |
+|----|------------|--------|
+| 1  | 1          | 100    |
+| 2  | 1          | 200    |
+| 3  | 2          | 50     |
+| 4  | 1          | 150    |
+| 5  | 2          | 75     |
+
+What does this query return?
+
+SELECT account_id, amount,
+  SUM(amount) OVER (PARTITION BY account_id ORDER BY id) AS running_total
+FROM transactions
+ORDER BY account_id, id;","1 | 100 | 100
+1 | 200 | 300
+1 | 150 | 450
+2 | 50  | 50
+2 | 75  | 125",,"PARTITION BY account_id restarts the running total for each account. ORDER BY id inside the window defines the cumulative direction. For account 1: 100, then 100+200=300, then 300+150=450. For account 2: 50, then 50+75=125. This is the standard way to compute running totals without collapsing rows.",,2026-05-22 16:11:13.098968+00
+SQLH007,hard,window_functions,write_the_code,"Write a query to return each employee's name, department, salary, and their salary rank within their department (1 = highest paid). Use ROW_NUMBER so ties get different ranks. Use the employees table with columns: name, department, salary.","SELECT name, department, salary,
+  ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) AS dept_rank
+FROM employees;",,"PARTITION BY department resets the row number counter for each department. ORDER BY salary DESC ensures the highest-paid employee gets ROW_NUMBER = 1. ROW_NUMBER always produces unique integers even for ties, unlike RANK or DENSE_RANK — use it when you need exactly one row per rank.",,2026-05-22 16:11:13.098968+00
+SQLH008,hard,window_functions,write_the_code,"Write a query to return each sale's id, amount, and the difference between the current sale amount and the previous sale amount ordered by id. Call the difference amount_diff. Use the sales table with columns: id, amount.","SELECT id, amount,
+  amount - LAG(amount) OVER (ORDER BY id) AS amount_diff
+FROM sales;",,"LAG(amount) OVER (ORDER BY id) returns the amount from the previous row in the specified order. Subtracting it from the current amount gives the difference. For the first row there is no previous row so LAG returns NULL, making amount_diff NULL for that row.",,2026-05-22 16:11:13.098968+00
+SQLH009,hard,window_functions,fill_in_the_blank,"Complete the query to return each product's name, category, price, and the highest price within its category:
+
+SELECT name, category, price,
+  MAX(price) ___ (PARTITION BY category) AS category_max
+FROM products;","SELECT name, category, price,
+  MAX(price) OVER (PARTITION BY category) AS category_max
+FROM products;",,"The OVER clause is what turns an aggregate function like MAX into a window function. Without OVER, MAX would collapse all rows into one. With OVER (PARTITION BY category), it computes the max within each category partition while keeping every row visible — no GROUP BY needed.",,2026-05-22 16:11:13.098968+00
+SQLH010,hard,window_functions,write_the_code,"Write a query to find the top-earning employee in each department. Return their name, department, and salary. Do not use a subquery in the FROM clause — use a CTE with ROW_NUMBER.","WITH ranked AS (
+  SELECT name, department, salary,
+    ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) AS rn
+  FROM employees
+)
+SELECT name, department, salary
+FROM ranked
+WHERE rn = 1;",,"Window functions cannot be filtered in the same SELECT where they are defined — you cannot write WHERE ROW_NUMBER() OVER (...) = 1 directly. The CTE materializes the window function result first, then the outer query filters to rn = 1, giving exactly one top earner per department.",,2026-05-22 16:11:13.098968+00
+SQLH011,hard,window_functions,spot_the_bug,"The query below is supposed to assign a percentile bucket (1–4) to each employee by salary, but it has a bug. Find and fix it.
+
+SELECT name, salary,
+  NTILE(4) OVER (salary DESC) AS quartile
+FROM employees;","SELECT name, salary,
+  NTILE(4) OVER (ORDER BY salary DESC) AS quartile
+FROM employees;",,"OVER requires an ORDER BY clause for NTILE to know how to divide rows into buckets. Writing OVER (salary DESC) is a syntax error — the correct syntax is OVER (ORDER BY salary DESC). Without ORDER BY, there is no defined ordering in which to split the rows into equal groups.",,2026-05-22 16:11:13.098968+00
+SQLH012,hard,exists,output_prediction,"Given these two tables:
+
+customers:
+| id | name    |
+|----|---------|
+| 1  | Alice   |
+| 2  | Bob     |
+| 3  | Carol   |
+
+orders:
+| id | customer_id |
+|----|-------------|
+| 1  | 1           |
+| 2  | 3           |
+
+What does this query return?
+
+SELECT name FROM customers c
+WHERE EXISTS (
+  SELECT 1 FROM orders o WHERE o.customer_id = c.id
+);","Alice
+Carol",,"EXISTS returns true if the subquery produces at least one row. For each customer, the correlated subquery checks whether a matching row exists in orders. Alice (id=1) and Carol (id=3) both have orders; Bob (id=2) does not. SELECT 1 is a convention — any value works since only row existence matters.",,2026-05-22 16:11:13.098968+00
+SQLH013,hard,exists,write_the_code,"Write a query to return all products that have never appeared in any order line. Use the products table (columns: id, name) and the order_items table (columns: id, product_id, quantity).","SELECT p.id, p.name
+FROM products p
+WHERE NOT EXISTS (
+  SELECT 1 FROM order_items oi WHERE oi.product_id = p.id
+);",,"NOT EXISTS returns true when the subquery finds no matching rows. For each product, the correlated subquery checks order_items for that product_id. Products with no matching order item pass the filter. This is often more readable and performant than LEFT JOIN ... WHERE ... IS NULL for existence checks.",,2026-05-22 16:11:13.098968+00
+SQLH014,hard,exists,fill_in_the_blank,"Complete the query to delete all customers who have no orders:
+
+DELETE FROM customers
+WHERE ___ EXISTS (
+  SELECT 1 FROM orders WHERE orders.customer_id = customers.id
+);","DELETE FROM customers
+WHERE NOT EXISTS (
+  SELECT 1 FROM orders WHERE orders.customer_id = customers.id
+);",,"NOT EXISTS evaluates to true when the subquery returns no rows — exactly the condition for customers without orders. This is a safe, precise deletion pattern because the subquery is correlated: it re-evaluates for every customer row being considered.",,2026-05-22 16:11:13.098968+00
+SQLH015,hard,set_operations,output_prediction,"Given these two tables:
+
+table_a:
+| val |
+|-----|
+| 1   |
+| 2   |
+| 3   |
+
+table_b:
+| val |
+|-----|
+| 2   |
+| 3   |
+| 4   |
+
+What does this query return?
+
+SELECT val FROM table_a
+INTERSECT
+SELECT val FROM table_b;","2
+3",,"INTERSECT returns only rows that appear in both result sets. Values 2 and 3 exist in both table_a and table_b. Value 1 is only in table_a and 4 is only in table_b — both are excluded. Like UNION, INTERSECT removes duplicates automatically.",,2026-05-22 16:11:13.098968+00
+SQLH016,hard,set_operations,output_prediction,"Given the same two tables as H015:
+
+table_a: values 1, 2, 3
+table_b: values 2, 3, 4
+
+What does this query return?
+
+SELECT val FROM table_a
+EXCEPT
+SELECT val FROM table_b;",1,,EXCEPT returns rows from the first query that do not appear in the second query. Values 2 and 3 exist in table_b so they are subtracted out. Only value 1 remains. EXCEPT is directional — switching the operands would return 4 instead.,,2026-05-22 16:11:13.098968+00
+SQLH017,hard,set_operations,write_the_code,Write a query to return a combined list of all email addresses from both the customers table and the staff table. Include duplicates if the same email appears in both tables. Both tables have an email column.,"SELECT email FROM customers
+UNION ALL
+SELECT email FROM staff;",,"UNION ALL combines the results of two queries and keeps all rows including duplicates. Plain UNION removes duplicates, which requires an additional sort or hash pass and is slower. When you explicitly want all rows — even repeated ones — UNION ALL is both semantically correct and more efficient.",,2026-05-22 16:11:13.098968+00
+SQLH018,hard,set_operations,spot_the_bug,"The query below is supposed to return all product ids that are in the catalog but have never been ordered. It has a bug. Find and fix it.
+
+SELECT id FROM products
+EXCEPT
+SELECT id FROM order_items;","SELECT id FROM products
+EXCEPT
+SELECT product_id FROM order_items;",,"EXCEPT compares result sets column by column. The first query returns product ids from the products table. The second must return the same kind of value — the product identifier — from order_items. That column is called product_id in order_items, not id. Using id would compare against the order item's own primary key, which is unrelated.",,2026-05-22 16:11:13.098968+00
+SQLH019,hard,transactions,write_the_code,"Write a transaction that transfers 500 from account id 1 to account id 2 in the accounts table (columns: id, balance). The debit and credit must either both succeed or both be rolled back. Use a SAVEPOINT called before_transfer before the updates.","BEGIN;
+
+SAVEPOINT before_transfer;
+
+UPDATE accounts SET balance = balance - 500 WHERE id = 1;
+UPDATE accounts SET balance = balance + 500 WHERE id = 2;
+
+COMMIT;",,"BEGIN starts the transaction block. Both UPDATEs execute within the same transaction, so they are atomic — either both are committed or neither is. SAVEPOINT before_transfer creates a rollback point: if something goes wrong after the savepoint, you can ROLLBACK TO before_transfer instead of rolling back the entire transaction. COMMIT finalises all changes.",,2026-05-22 16:11:13.098968+00
+SQLH020,hard,transactions,fill_in_the_blank,"Complete the statement to undo all changes made since the last SAVEPOINT named checkpoint_a:
+
+ROLLBACK TO ___;",ROLLBACK TO checkpoint_a;,,"ROLLBACK TO savepoint_name undoes changes made after that savepoint was set, without rolling back the entire transaction. The transaction stays open and you can continue working or commit what was done before the savepoint. This is useful for recovering from errors within a long transaction.",,2026-05-22 16:11:13.098968+00
+SQLH021,hard,transactions,output_prediction,"Consider this sequence of SQL statements:
+
+BEGIN;
+UPDATE accounts SET balance = balance - 200 WHERE id = 1;
+SAVEPOINT sp1;
+UPDATE accounts SET balance = balance - 300 WHERE id = 1;
+ROLLBACK TO sp1;
+COMMIT;
+
+If the starting balance of account id 1 is 1000, what is the final committed balance?",800,,"The first UPDATE subtracts 200, leaving 800. SAVEPOINT sp1 is set at this point. The second UPDATE subtracts another 300, leaving 500 — but ROLLBACK TO sp1 undoes everything after sp1, reverting the balance to 800. COMMIT then saves that state. The net effect is only the first deduction of 200.",,2026-05-22 16:11:13.098968+00
+SQLH022,hard,indexes,write_the_code,Write a statement to create a partial index on the orders table that indexes only rows where the status column equals 'pending'. Name the index idx_pending_orders and index the created_at column.,CREATE INDEX idx_pending_orders ON orders (created_at) WHERE status = 'pending';,,"A partial index includes only rows that satisfy a WHERE condition. If queries almost always filter on status = 'pending', a partial index is smaller and faster than a full index on the same column. It is one of the most practical index optimizations for tables with a common status filter pattern.",,2026-05-22 16:11:13.098968+00
+SQLH023,hard,indexes,write_the_code,Write a statement to create a composite index on the employees table to optimise queries that filter by department and then sort by salary descending. Name it idx_dept_salary.,"CREATE INDEX idx_dept_salary ON employees (department, salary DESC);",,A composite index covers multiple columns. The order matters: putting department first allows the index to be used for WHERE department = '...' filters. Adding salary DESC allows the index to serve ORDER BY salary DESC without a separate sort step. A query filtering by salary alone cannot use this index efficiently.,,2026-05-22 16:11:13.098968+00
+SQLH024,hard,indexes,fill_in_the_blank,"Complete the statement to drop the index named idx_old_orders:
+
+___ INDEX idx_old_orders;",DROP INDEX idx_old_orders;,,"DROP INDEX removes the index from the database. Unlike dropping a table, this does not affect the data — only the auxiliary index structure is deleted. The table remains intact and queries continue to work, just potentially more slowly without the index.",,2026-05-22 16:11:13.098968+00
+SQLH025,hard,views,write_the_code,Write a statement to create an updatable view called current_employees that selects all columns from the employees table where is_active is true. Add the WITH CHECK OPTION clause so that any INSERT or UPDATE through the view cannot produce a row with is_active = false.,"CREATE VIEW current_employees AS
+SELECT *
+FROM employees
+WHERE is_active = true
+WITH CHECK OPTION;",,"WITH CHECK OPTION enforces the view's WHERE condition on writes. Without it, you could insert a row with is_active = false through the view — the insert would succeed but the row would immediately disappear from the view. WITH CHECK OPTION rejects any write that would violate the view's filter condition.",,2026-05-22 16:11:13.098968+00
+SQLH026,hard,views,spot_the_bug,"The query below tries to update a view but fails because the view is not updatable. Identify why and rewrite the view definition so it becomes updatable.
+
+CREATE VIEW dept_headcount AS
+SELECT department, COUNT(*) AS headcount
+FROM employees
+GROUP BY department;","-- This view cannot be made updatable while using GROUP BY and COUNT.
+-- To make an updatable view, remove the aggregation:
+CREATE VIEW dept_employees AS
+SELECT id, name, department
+FROM employees;",,"Views with GROUP BY, aggregate functions, DISTINCT, UNION, or subqueries are not updatable because there is no one-to-one mapping between view rows and base table rows. An updatable view must map each row directly to exactly one row in the underlying table. Removing the aggregation and returning individual employee rows makes the view updatable.",,2026-05-22 16:11:13.098968+00
+SQLH027,hard,schema_design,write_the_code,"Design a schema for a blogging platform. Create three tables: users (id, username, email, created_at), posts (id, user_id, title, body, published_at), and comments (id, post_id, user_id, body, created_at). Enforce appropriate primary keys, foreign keys, and NOT NULL constraints.","CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE posts (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id),
+  title VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  published_at TIMESTAMP
+);
+
+CREATE TABLE comments (
+  id SERIAL PRIMARY KEY,
+  post_id INT NOT NULL REFERENCES posts(id),
+  user_id INT NOT NULL REFERENCES users(id),
+  body TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);",,SERIAL auto-increments the primary key. UNIQUE on username and email prevents duplicates. Foreign keys on user_id and post_id enforce referential integrity — you cannot create a post for a non-existent user or a comment on a non-existent post. DEFAULT NOW() auto-populates timestamps on insert. published_at is nullable since a post might be saved as a draft before publishing.,,2026-05-22 16:11:13.098968+00
+SQLH028,hard,schema_design,write_the_code,"A many-to-many relationship exists between students and courses — a student can enroll in many courses and a course can have many students. Write the CREATE TABLE statements for students (id, name), courses (id, title), and the junction table enrollments that records when each enrollment happened.","CREATE TABLE students (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE courses (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(200) NOT NULL
+);
+
+CREATE TABLE enrollments (
+  student_id INT NOT NULL REFERENCES students(id),
+  course_id INT NOT NULL REFERENCES courses(id),
+  enrolled_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (student_id, course_id)
+);",,"Many-to-many relationships require a junction (bridge) table whose primary key is the composite of both foreign keys. PRIMARY KEY (student_id, course_id) ensures a student cannot enroll in the same course twice. Storing enrolled_at in the junction table captures data specific to the relationship itself, not to either entity alone.",,2026-05-22 16:11:13.098968+00
+SQLH029,hard,schema_design,fill_in_the_blank,"Complete the ALTER TABLE statement to add a foreign key constraint that ensures every order's customer_id references a valid id in the customers table, and automatically deletes all orders when the referenced customer is deleted:
+
+ALTER TABLE orders
+ADD CONSTRAINT fk_orders_customer
+FOREIGN KEY (customer_id) REFERENCES customers(id)
+ON DELETE ___;","ALTER TABLE orders
+ADD CONSTRAINT fk_orders_customer
+FOREIGN KEY (customer_id) REFERENCES customers(id)
+ON DELETE CASCADE;",,"ON DELETE CASCADE automatically deletes child rows (orders) when the referenced parent row (the customer) is deleted. This maintains referential integrity without manual cleanup. The alternatives are ON DELETE SET NULL (set the FK to NULL), ON DELETE RESTRICT (block the deletion if children exist), and ON DELETE NO ACTION (similar to RESTRICT, evaluated at transaction end).",,2026-05-22 16:11:13.098968+00
+SQLH030,hard,triggers,write_the_code,"Write a trigger called trg_updated_at that automatically sets the updated_at column to the current timestamp on any UPDATE to the employees table. First write the trigger function, then the trigger itself.","CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_updated_at
+BEFORE UPDATE ON employees
+FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();",,"In PostgreSQL, a trigger requires a trigger function that returns TRIGGER. NEW refers to the row about to be written — setting NEW.updated_at modifies it before it lands in the table. BEFORE UPDATE ensures the column is set before the row is stored. FOR EACH ROW means the trigger fires once per affected row, not once per statement.",,2026-05-22 16:11:13.098968+00
+SQLH031,hard,triggers,fill_in_the_blank,"Complete the trigger definition to make it fire once per affected row (rather than once per statement):
+
+CREATE TRIGGER trg_log_changes
+AFTER UPDATE ON products
+FOR EACH ___
+EXECUTE FUNCTION log_product_changes();","CREATE TRIGGER trg_log_changes
+AFTER UPDATE ON products
+FOR EACH ROW
+EXECUTE FUNCTION log_product_changes();",,FOR EACH ROW fires the trigger function once for every individual row affected by the DML statement. FOR EACH STATEMENT fires it once regardless of how many rows were changed. Row-level triggers have access to OLD and NEW record variables; statement-level triggers do not.,,2026-05-22 16:11:13.098968+00
+SQLH032,hard,upsert,write_the_code,"Write an upsert statement that inserts a new row into the page_views table (columns: page_id, view_count) with a view_count of 1. If a row with the same page_id already exists, increment its view_count by 1 instead.","INSERT INTO page_views (page_id, view_count)
+VALUES (42, 1)
+ON CONFLICT (page_id)
+DO UPDATE SET view_count = page_views.view_count + 1;",,ON CONFLICT (page_id) specifies the conflict target — the column with a unique or primary key constraint. DO UPDATE SET defines what to do on conflict. Referencing page_views.view_count (the existing stored value) rather than EXCLUDED.view_count (the value that was rejected) increments the actual current count correctly.,,2026-05-22 16:11:13.098968+00
+SQLH033,hard,upsert,fill_in_the_blank,"Complete the upsert to insert a product but do nothing if a product with the same sku already exists:
+
+INSERT INTO products (sku, name, price)
+VALUES ('ABC-001', 'Widget', 9.99)
+ON CONFLICT (sku)
+DO ___;","INSERT INTO products (sku, name, price)
+VALUES ('ABC-001', 'Widget', 9.99)
+ON CONFLICT (sku)
+DO NOTHING;",,"DO NOTHING silently ignores the INSERT when a conflict is detected, leaving the existing row unchanged. This is useful for idempotent inserts where you want to ensure a row exists but do not want to overwrite data if it is already there.",,2026-05-22 16:11:13.098968+00
+SQLH034,hard,correlated_subqueries,output_prediction,"Given this table called employees:
+
+| id | name    | department | salary |
+|----|---------|------------|--------|
+| 1  | Alice   | HR         | 60000  |
+| 2  | Bob     | IT         | 90000  |
+| 3  | Carol   | HR         | 75000  |
+| 4  | Dave    | IT         | 85000  |
+
+What does this query return?
+
+SELECT name, salary
+FROM employees e1
+WHERE salary > (
+  SELECT AVG(salary)
+  FROM employees e2
+  WHERE e2.department = e1.department
+);","Carol | 75000
+Bob | 90000",,"For each row in e1, the correlated subquery computes the average salary within that employee's department. HR average = (60000+75000)/2 = 67500; Carol (75000) exceeds it, Alice (60000) does not. IT average = (90000+85000)/2 = 87500; Bob (90000) exceeds it, Dave (85000) does not.",,2026-05-22 16:11:13.098968+00
+SQLH035,hard,correlated_subqueries,write_the_code,"Write a correlated subquery to return each department's name and the name of its highest-paid employee. Use the departments table (columns: id, name) and the employees table (columns: id, dept_id, name, salary).","SELECT d.name AS department,
+  (
+    SELECT e.name
+    FROM employees e
+    WHERE e.dept_id = d.id
+    ORDER BY e.salary DESC
+    LIMIT 1
+  ) AS top_earner
+FROM departments d;",,"A correlated scalar subquery in the SELECT list runs once per outer row. For each department, the subquery finds the employee in that department with the highest salary and returns their name. ORDER BY salary DESC LIMIT 1 efficiently picks the top earner. If a department has no employees, the subquery returns NULL.",,2026-05-22 16:11:13.098968+00
+SQLH036,hard,window_functions,output_prediction,"Given this table called monthly_revenue:
+
+| month | revenue |
+|-------|---------|
+| 1     | 1000    |
+| 2     | 1200    |
+| 3     | 900     |
+| 4     | 1500    |
+
+What does this query return?
+
+SELECT month, revenue,
+  LEAD(revenue) OVER (ORDER BY month) AS next_month_revenue
+FROM monthly_revenue;","1 | 1000 | 1200
+2 | 1200 | 900
+3 | 900  | 1500
+4 | 1500 | NULL",,"LEAD looks ahead to the next row in the specified order. For month 1, the next month's revenue is 1200. For month 4, there is no next row so LEAD returns NULL. LEAD and LAG are commonly used for month-over-month comparisons without self-joins.",,2026-05-22 16:11:13.098968+00
+SQLH037,hard,cte,write_the_code,"Write a query using a CTE to calculate each salesperson's total sales and their percentage share of the overall total. Use the sales table with columns: salesperson, amount. Return salesperson, total, and pct_share rounded to 2 decimal places.","WITH totals AS (
+  SELECT salesperson, SUM(amount) AS total
+  FROM sales
+  GROUP BY salesperson
+),
+grand_total AS (
+  SELECT SUM(total) AS overall FROM totals
+)
+SELECT t.salesperson, t.total,
+  ROUND(t.total * 100.0 / g.overall, 2) AS pct_share
+FROM totals t
+CROSS JOIN grand_total g
+ORDER BY pct_share DESC;",,"The first CTE aggregates per salesperson. The second CTE sums those totals for the grand total. CROSS JOIN combines every row from totals with the single row from grand_total, making the overall total available for each row's percentage calculation. Multiplying by 100.0 ensures floating-point division rather than integer truncation.",,2026-05-22 16:11:13.098968+00
+SQLH038,hard,schema_design,spot_the_bug,"The following table is supposed to store product variants but the schema has a design flaw that will cause data integrity problems. Identify the flaw and write the corrected schema.
+
+CREATE TABLE product_variants (
+  id SERIAL PRIMARY KEY,
+  product_name VARCHAR(200),
+  sku VARCHAR(50),
+  size VARCHAR(20),
+  color VARCHAR(50),
+  price NUMERIC(10,2)
+);","CREATE TABLE products (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(200) NOT NULL
+);
+
+CREATE TABLE product_variants (
+  id SERIAL PRIMARY KEY,
+  product_id INT NOT NULL REFERENCES products(id),
+  sku VARCHAR(50) NOT NULL UNIQUE,
+  size VARCHAR(20),
+  color VARCHAR(50),
+  price NUMERIC(10,2) NOT NULL
+);",,"Storing product_name directly in variants violates normalization — if the product name changes, every variant row must be updated, risking inconsistency. Separating products into their own table and linking via product_id (foreign key) stores the name once. The sku should be UNIQUE to prevent duplicate variants, and price should be NOT NULL since a variant without a price is not sellable.",,2026-05-22 16:11:13.098968+00
+SQLH039,hard,aggregation,write_the_code,"Write a query using conditional aggregation to return a single row showing the count of orders with status 'pending', 'shipped', and 'delivered' from the orders table (columns: id, status). Name the columns pending_count, shipped_count, delivered_count.","SELECT
+  COUNT(CASE WHEN status = 'pending' THEN 1 END) AS pending_count,
+  COUNT(CASE WHEN status = 'shipped' THEN 1 END) AS shipped_count,
+  COUNT(CASE WHEN status = 'delivered' THEN 1 END) AS delivered_count
+FROM orders;","SELECT
+  SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
+  SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) AS shipped_count,
+  SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) AS delivered_count
+FROM orders;","Conditional aggregation pivots row-level data into columns without GROUP BY. COUNT ignores NULL values, so CASE WHEN ... THEN 1 END (with implicit ELSE NULL) counts only matching rows. This is more efficient than running three separate COUNT queries.",,2026-05-22 16:11:13.098968+00
+SQLH040,hard,correlated_subqueries,spot_the_bug,"The query below is supposed to return each product and how many orders contain it, but it returns the total count of all order items for every product instead of the per-product count. Find and fix the bug.
+
+SELECT p.name,
+  (SELECT COUNT(*) FROM order_items) AS order_count
+FROM products p;","SELECT p.name,
+  (SELECT COUNT(*) FROM order_items oi WHERE oi.product_id = p.id) AS order_count
+FROM products p;",,"The original subquery counts all rows in order_items with no filter, so it returns the same total for every product. Adding WHERE oi.product_id = p.id correlates the subquery to the outer query's current product row, making it count only order items for that specific product.",,2026-05-22 16:11:13.098968+00
+SQLH041,hard,set_operations,write_the_code,Write a query to return all employee ids that are in the employees table but not in the managers table (columns: id in both tables). Then UNION it with all manager ids that are not in the employees table. This should show ids that exist in one table but not the other.,"SELECT id FROM employees
+EXCEPT
+SELECT id FROM managers
+UNION
+SELECT id FROM managers
+EXCEPT
+SELECT id FROM employees;",,This produces a symmetric difference — ids present in one table but not both. The first EXCEPT gets employee ids absent from managers. The second EXCEPT gets manager ids absent from employees. UNION combines both sets and removes duplicates. This is a practical check during data migrations or role audits.,,2026-05-22 16:11:13.098968+00
+SQLH042,hard,transactions,fill_in_the_blank,"Complete the statement to begin a transaction with the serializable isolation level, which prevents all concurrency anomalies:
+
+BEGIN TRANSACTION ISOLATION LEVEL ___;",BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;,,"SERIALIZABLE is the strictest isolation level. It guarantees that concurrent transactions produce results identical to running them one at a time in some serial order. Lower isolation levels (READ COMMITTED, REPEATABLE READ) allow anomalies like dirty reads, non-repeatable reads, or phantom reads for better throughput. SERIALIZABLE eliminates all of these at the cost of potential transaction retries.",,2026-05-22 16:11:13.098968+00
+SQLH043,hard,window_functions,write_the_code,"Write a query to return each order's id, amount, and a 3-row moving average of amount ordered by id. Call the moving average moving_avg and round it to 2 decimal places. Use the orders table with columns: id, amount.","SELECT id, amount,
+  ROUND(
+    AVG(amount) OVER (
+      ORDER BY id
+      ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ),
+  2) AS moving_avg
+FROM orders;",,"ROWS BETWEEN 2 PRECEDING AND CURRENT ROW defines a window frame of the current row plus the two rows before it — exactly 3 rows when available. AVG computed over this frame gives the rolling 3-period average. For the first two rows, the window is smaller since there are fewer preceding rows, so the average is computed over fewer values.",,2026-05-22 16:11:13.098968+00
+SQLH044,hard,schema_design,fill_in_the_blank,"Complete the constraint to ensure that a product's discount_price is always less than its regular price:
+
+ALTER TABLE products
+ADD CONSTRAINT chk_discount
+CHECK (___ < price);","ALTER TABLE products
+ADD CONSTRAINT chk_discount
+CHECK (discount_price < price);",,"A CHECK constraint can reference multiple columns in the same row. CHECK (discount_price < price) ensures that whenever a row is inserted or updated, discount_price must be strictly less than price. Any violation causes the statement to fail, protecting business rules at the database level.",,2026-05-22 16:11:13.098968+00
+SQLH045,hard,cte,spot_the_bug,"The query below uses two CTEs but has a bug causing a syntax error. Find and fix it.
+
+WITH active_users AS (
+  SELECT id, name FROM users WHERE is_active = true
+),
+WITH recent_orders AS (
+  SELECT user_id, COUNT(*) AS order_count FROM orders GROUP BY user_id
+)
+SELECT u.name, o.order_count
+FROM active_users u
+JOIN recent_orders o ON u.id = o.user_id;","WITH active_users AS (
+  SELECT id, name FROM users WHERE is_active = true
+),
+recent_orders AS (
+  SELECT user_id, COUNT(*) AS order_count FROM orders GROUP BY user_id
+)
+SELECT u.name, o.order_count
+FROM active_users u
+JOIN recent_orders o ON u.id = o.user_id;",,"When defining multiple CTEs, the WITH keyword appears only once at the beginning. Each additional CTE is separated by a comma — not by a new WITH keyword. Writing WITH again before recent_orders is a syntax error. The comma after the closing parenthesis of active_users is the correct separator.",,2026-05-22 16:11:13.098968+00
+SQLI001,intermediate,joins,output_prediction,"Given these two tables:
+
+employees:
+| id | name    | dept_id |
+|----|---------|----------|
+| 1  | Alice   | 1        |
+| 2  | Bob     | 2        |
+| 3  | Carol   | 1        |
+
+departments:
+| id | dept_name  |
+|----|------------|
+| 1  | HR         |
+| 2  | IT         |
+| 3  | Finance    |
+
+What does this query return?
+
+SELECT e.name, d.dept_name
+FROM employees e
+INNER JOIN departments d ON e.dept_id = d.id;","Alice | HR
+Bob | IT
+Carol | HR",,INNER JOIN returns only rows where the join condition matches in both tables. Alice and Carol have dept_id = 1 which matches HR; Bob has dept_id = 2 which matches IT. Finance (id = 3) has no employees so it does not appear. The e and d are table aliases that shorten the query.,,2026-05-22 16:11:12.967034+00
+SQLI002,intermediate,joins,output_prediction,"Given these two tables:
+
+customers:
+| id | name    |
+|----|---------|
+| 1  | Alice   |
+| 2  | Bob     |
+| 3  | Carol   |
+
+orders:
+| id | customer_id | total |
+|----|-------------|-------|
+| 1  | 1           | 200   |
+| 2  | 1           | 150   |
+
+What does this query return?
+
+SELECT c.name, o.total
+FROM customers c
+LEFT JOIN orders o ON c.id = o.customer_id;","Alice | 200
+Alice | 150
+Bob | NULL
+Carol | NULL",,"LEFT JOIN returns all rows from the left table (customers) and matching rows from the right table (orders). Alice has two orders so she appears twice. Bob and Carol have no orders, so their order columns are NULL. This is how you find customers with or without orders.",,2026-05-22 16:11:12.967034+00
+SQLI003,intermediate,joins,write_the_code,"Write a query to find the names of all customers who have never placed an order. Use the customers table (columns: id, name) and the orders table (columns: id, customer_id).","SELECT c.name
+FROM customers c
+LEFT JOIN orders o ON c.id = o.customer_id
+WHERE o.customer_id IS NULL;",,"A LEFT JOIN keeps all customers regardless of whether they have orders. When there is no matching order, all columns from the orders table are NULL. Filtering WHERE o.customer_id IS NULL isolates exactly those customers with no matching order row.",,2026-05-22 16:11:12.967034+00
+SQLI004,intermediate,joins,fill_in_the_blank,"Complete the query to return all rows from both tables, filling NULLs where there is no match on either side:
+
+SELECT e.name, d.dept_name
+FROM employees e
+___ JOIN departments d ON e.dept_id = d.id;","SELECT e.name, d.dept_name
+FROM employees e
+FULL OUTER JOIN departments d ON e.dept_id = d.id;",,"FULL OUTER JOIN returns all rows from both tables. Where there is a match, columns from both tables are populated. Where there is no match on either side, the unmatched table's columns are NULL. It is the combination of LEFT JOIN and RIGHT JOIN.",,2026-05-22 16:11:12.967034+00
+SQLI005,intermediate,joins,spot_the_bug,"The query below is supposed to return each employee's name alongside their manager's name, but it returns an error. Find and fix the bug.
+
+SELECT e.name AS employee, m.name AS manager
+FROM employees e
+INNER JOIN employees ON e.manager_id = m.id;","SELECT e.name AS employee, m.name AS manager
+FROM employees e
+INNER JOIN employees m ON e.manager_id = m.id;",,"A self join requires two aliases — one for each role the table plays. The original query aliases the left side as e but gives no alias to the right side, so m is undefined. Adding m after the second employees gives the join a second reference to distinguish the manager rows.",,2026-05-22 16:11:12.967034+00
+SQLI006,intermediate,joins,write_the_code,"Write a query to return the name of each product and the name of its supplier. Use the products table (columns: id, name, supplier_id) and the suppliers table (columns: id, name). Only return products that have a matching supplier.","SELECT p.name AS product_name, s.name AS supplier_name
+FROM products p
+INNER JOIN suppliers s ON p.supplier_id = s.id;",,"INNER JOIN returns only rows with a match in both tables, so products without a supplier_id match are excluded. Table aliases p and s keep the query concise and disambiguate the name column which exists in both tables.",,2026-05-22 16:11:12.967034+00
+SQLI007,intermediate,subqueries,output_prediction,"Given this table called products:
+
+| id | name      | price |
+|----|-----------|-------|
+| 1  | Widget    | 25    |
+| 2  | Gadget    | 80    |
+| 3  | Doohickey | 45    |
+| 4  | Thingamajig| 15   |
+
+What does this query return?
+
+SELECT name FROM products
+WHERE price > (SELECT AVG(price) FROM products);","Gadget
+Doohickey",,The subquery calculates AVG(price) = (25 + 80 + 45 + 15) / 4 = 41.25. The outer query then filters to products with price above 41.25. Gadget (80) and Doohickey (45) qualify; Widget (25) and Thingamajig (15) do not.,,2026-05-22 16:11:12.967034+00
+SQLI008,intermediate,subqueries,write_the_code,"Write a query to find all employees whose salary is higher than the average salary of employees in the 'HR' department. Use the employees table with columns: id, name, department, salary.","SELECT name, salary
+FROM employees
+WHERE salary > (
+  SELECT AVG(salary)
+  FROM employees
+  WHERE department = 'HR'
+);",,The subquery computes the average salary specifically for HR employees. The outer query then compares each employee's salary against that value. This pattern — a scalar subquery in WHERE — is one of the most common uses of subqueries.,,2026-05-22 16:11:12.967034+00
+SQLI009,intermediate,subqueries,fill_in_the_blank,"Complete the query to return all customers who have placed at least one order:
+
+SELECT name FROM customers
+WHERE id ___ (SELECT customer_id FROM orders);","SELECT name FROM customers
+WHERE id IN (SELECT customer_id FROM orders);",,"IN checks whether a value exists in a list or subquery result set. Here the subquery returns all customer_ids present in the orders table, and IN filters customers whose id appears in that list — effectively finding customers with at least one order.",,2026-05-22 16:11:12.967034+00
+SQLI010,intermediate,aggregation,output_prediction,"Given this table called orders:
+
+| id | customer | amount |
+|----|----------|--------|
+| 1  | Alice    | 200    |
+| 2  | Bob      | 50     |
+| 3  | Alice    | 300    |
+| 4  | Bob      | 90     |
+| 5  | Carol    | 400    |
+
+What does this query return?
+
+SELECT customer, SUM(amount) AS total
+FROM orders
+GROUP BY customer
+HAVING SUM(amount) > 200;","Alice | 500
+Carol | 400",,"GROUP BY groups rows by customer. SUM computes totals: Alice = 500, Bob = 140, Carol = 400. HAVING then filters groups where the total exceeds 200. Bob's total of 140 does not qualify. HAVING always operates on the result of aggregation, not on individual rows.",,2026-05-22 16:11:12.967034+00
+SQLI011,intermediate,aggregation,write_the_code,"Write a query to return each department and its headcount from the employees table (columns: id, name, department), but only include departments with more than 3 employees. Alias the count as headcount.","SELECT department, COUNT(*) AS headcount
+FROM employees
+GROUP BY department
+HAVING COUNT(*) > 3;",,GROUP BY department forms one group per department. COUNT(*) tallies rows in each group. HAVING COUNT(*) > 3 discards departments with 3 or fewer employees. WHERE cannot be used here because the filter depends on an aggregate computed after grouping.,,2026-05-22 16:11:12.967034+00
+SQLI012,intermediate,aggregation,spot_the_bug,"The query below is supposed to return the highest salary per department, but it has a bug. Find and fix it.
+
+SELECT department, MAX(salary) AS top_salary
+FROM employees
+WHERE MAX(salary) > 70000
+GROUP BY department;","SELECT department, MAX(salary) AS top_salary
+FROM employees
+GROUP BY department
+HAVING MAX(salary) > 70000;",,"Aggregate functions like MAX cannot be used in a WHERE clause because WHERE filters rows before grouping occurs. The fix is to move the condition to HAVING, which filters after groups are formed and aggregates are computed. The GROUP BY clause must also come before HAVING.",,2026-05-22 16:11:12.967034+00
+SQLI013,intermediate,string_functions,output_prediction,"Given this table called users:
+
+| id | email                  |
+|----|------------------------|
+| 1  | Alice@Example.COM      |
+| 2  | BOB@MAIL.COM           |
+
+What does this query return?
+
+SELECT LOWER(email) FROM users;","alice@example.com
+bob@mail.com",,LOWER converts all characters in a string to lowercase. It does not modify the stored data — it only transforms the value in the query result. This is commonly used for case-insensitive comparisons or display normalization.,,2026-05-22 16:11:12.967034+00
+SQLI014,intermediate,string_functions,fill_in_the_blank,"Complete the query to return the number of characters in each product name:
+
+SELECT name, ___(name) AS name_length FROM products;","SELECT name, LENGTH(name) AS name_length FROM products;",,LENGTH returns the number of characters in a string. CHAR_LENGTH is an equivalent standard SQL function. Both are widely supported and useful for validating input lengths or sorting by string length.,,2026-05-22 16:11:12.967034+00
+SQLI015,intermediate,string_functions,write_the_code,Write a query to return each customer's name and a new column called short_name that contains only the first 5 characters of their name. Use the customers table with a name column.,"SELECT name, SUBSTRING(name, 1, 5) AS short_name FROM customers;","SELECT name, LEFT(name, 5) AS short_name FROM customers;","SUBSTRING(string, start, length) extracts a portion of a string starting at position 1 (SQL uses 1-based indexing) for 5 characters. LEFT(name, 5) is a shorthand available in most databases that extracts characters from the left side.",,2026-05-22 16:11:12.967034+00
+SQLI016,intermediate,string_functions,output_prediction,"Given this table called feedback:
+
+| id | comment            |
+|----|--------------------|
+| 1  |   Great product!   |
+| 2  |  Needs improvement |
+
+What does this query return?
+
+SELECT TRIM(comment) FROM feedback;","Great product!
+Needs improvement",,TRIM removes leading and trailing whitespace from a string. It does not remove spaces inside the string. This is commonly used to clean up user-entered data before storing or comparing it.,,2026-05-22 16:11:12.967034+00
+SQLI017,intermediate,date_functions,fill_in_the_blank,"Complete the query to return the current date and time:
+
+SELECT ___();",SELECT NOW();,,NOW() returns the current date and time including the time zone offset. CURRENT_TIMESTAMP is the standard SQL equivalent. Both are used frequently for recording when rows were created or updated.,,2026-05-22 16:11:12.967034+00
+SQLI018,intermediate,date_functions,output_prediction,"Given this table called subscriptions:
+
+| id | user_id | start_date |
+|----|---------|------------|
+| 1  | 1       | 2023-03-15 |
+| 2  | 2       | 2024-07-01 |
+| 3  | 3       | 2022-11-20 |
+
+What does this query return?
+
+SELECT user_id, EXTRACT(YEAR FROM start_date) AS start_year
+FROM subscriptions;","1 | 2023
+2 | 2024
+3 | 2022",,"EXTRACT pulls a specific part (year, month, day, hour, etc.) from a date or timestamp value. Here it returns the year component of each start_date. The result is a numeric value, not a string.",,2026-05-22 16:11:12.967034+00
+SQLI019,intermediate,date_functions,write_the_code,"Write a query to return all orders from the orders table (columns: id, customer_id, order_date, total) that were placed in the year 2024.",SELECT * FROM orders WHERE EXTRACT(YEAR FROM order_date) = 2024;,SELECT * FROM orders WHERE order_date >= '2024-01-01' AND order_date < '2025-01-01';,EXTRACT(YEAR FROM order_date) = 2024 isolates rows where the year portion of order_date is 2024. The alternative using a date range is often preferred in production because it is index-friendly — wrapping a column in a function can prevent the database from using an index on that column.,,2026-05-22 16:11:12.967034+00
+SQLI020,intermediate,case_when,output_prediction,"Given this table called employees:
+
+| id | name    | salary |
+|----|---------|--------|
+| 1  | Alice   | 90000  |
+| 2  | Bob     | 45000  |
+| 3  | Carol   | 62000  |
+
+What does this query return?
+
+SELECT name,
+  CASE
+    WHEN salary >= 80000 THEN 'Senior'
+    WHEN salary >= 55000 THEN 'Mid'
+    ELSE 'Junior'
+  END AS level
+FROM employees;","Alice | Senior
+Bob | Junior
+Carol | Mid",,CASE WHEN evaluates conditions in order and returns the value of the first matching WHEN branch. Alice's 90000 meets the first condition (>= 80000) so she gets 'Senior'. Carol's 62000 misses the first but meets the second (>= 55000) for 'Mid'. Bob's 45000 matches neither so he falls to ELSE 'Junior'.,,2026-05-22 16:11:12.967034+00
+SQLI021,intermediate,case_when,write_the_code,"Write a query that returns each product's name and a column called availability. If the stock column is 0 show 'Out of stock', if it is between 1 and 10 show 'Low stock', otherwise show 'In stock'. Use the products table with columns: name, stock.","SELECT name,
+  CASE
+    WHEN stock = 0 THEN 'Out of stock'
+    WHEN stock BETWEEN 1 AND 10 THEN 'Low stock'
+    ELSE 'In stock'
+  END AS availability
+FROM products;",,CASE WHEN is the standard SQL conditional expression. Conditions are evaluated top to bottom and the first match wins. The ELSE clause acts as a catch-all for rows that do not satisfy any WHEN condition. Forgetting ELSE returns NULL for unmatched rows.,,2026-05-22 16:11:12.967034+00
+SQLI022,intermediate,case_when,fill_in_the_blank,"Complete the query to count how many orders are in each status category:
+
+SELECT
+  SUM(CASE WHEN status = 'completed' THEN 1 ___ 0) AS completed,
+  SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0) AS pending
+FROM orders;","SELECT
+  SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0) AS completed,
+  SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0) AS pending
+FROM orders;",,"ELSE provides the value to return when no WHEN condition matches. Here, CASE WHEN status = 'completed' THEN 1 ELSE 0 returns 1 for completed rows and 0 for all others. Wrapping this in SUM effectively counts only the rows matching each condition — a common technique called conditional aggregation.",,2026-05-22 16:11:12.967034+00
+SQLI023,intermediate,constraints,write_the_code,"Write a CREATE TABLE statement for a table called enrollments with columns: id (integer, primary key), student_id (integer, cannot be null, references the students table's id column), course_id (integer, cannot be null, references the courses table's id column). The combination of student_id and course_id should be unique.","CREATE TABLE enrollments (
+  id INT PRIMARY KEY,
+  student_id INT NOT NULL REFERENCES students(id),
+  course_id INT NOT NULL REFERENCES courses(id),
+  UNIQUE (student_id, course_id)
+);",,REFERENCES creates a foreign key constraint linking the column to another table's primary key. NOT NULL ensures neither column can be omitted. The table-level UNIQUE constraint on the combination of student_id and course_id prevents a student from enrolling in the same course twice.,,2026-05-22 16:11:12.967034+00
+SQLI024,intermediate,constraints,fill_in_the_blank,"Complete the statement to add a constraint ensuring the price column in the products table is always greater than zero:
+
+ALTER TABLE products ADD ___ price_positive CHECK (price > 0);",ALTER TABLE products ADD CONSTRAINT price_positive CHECK (price > 0);,,The CONSTRAINT keyword names the constraint being added. The name (price_positive) makes it easier to identify and drop the constraint later. CHECK (price > 0) defines the rule — any INSERT or UPDATE that violates this condition will be rejected by the database.,,2026-05-22 16:11:12.967034+00
+SQLI025,intermediate,constraints,spot_the_bug,"The table below is supposed to enforce that each employee can only belong to one department, but the foreign key is defined incorrectly. Find and fix the bug.
+
+CREATE TABLE employees (
+  id INT PRIMARY KEY,
+  name VARCHAR(100),
+  dept_id INT,
+  FOREIGN KEY (dept_id) REFERENCES dept(dept_id)
+);","CREATE TABLE employees (
+  id INT PRIMARY KEY,
+  name VARCHAR(100),
+  dept_id INT,
+  FOREIGN KEY (dept_id) REFERENCES departments(id)
+);",,"A FOREIGN KEY must reference a column that exists in the target table with the correct table name and column name. Here, the table is named departments (not dept) and its primary key column is id (not dept_id). Both the table name and column name in the REFERENCES clause must exactly match the actual table definition.",,2026-05-22 16:11:12.967034+00
+SQLI026,intermediate,indexes,fill_in_the_blank,"Complete the statement to create an index on the email column of the users table to speed up lookups by email:
+
+CREATE ___ idx_users_email ON users (email);",CREATE INDEX idx_users_email ON users (email);,,CREATE INDEX builds a data structure (typically a B-tree) that allows the database to find rows by the indexed column without scanning the entire table. Indexes on frequently filtered or joined columns significantly improve query performance at the cost of additional storage and slightly slower writes.,,2026-05-22 16:11:12.967034+00
+SQLI027,intermediate,indexes,write_the_code,"Write a statement to create a unique index called idx_username on the username column of the users table, ensuring no two users can have the same username.",CREATE UNIQUE INDEX idx_username ON users (username);,,A UNIQUE index enforces uniqueness on the indexed column in addition to speeding up lookups. It rejects any INSERT or UPDATE that would create a duplicate value. This is functionally equivalent to adding a UNIQUE constraint and is often the preferred approach when you want both the constraint and query performance benefits.,,2026-05-22 16:11:12.967034+00
+SQLI028,intermediate,normalization,write_the_code,"The following table violates first normal form (1NF) because the phone_numbers column stores multiple values. Rewrite it into two tables that satisfy 1NF.
+
+Original table: customers(id, name, phone_numbers)
+Example row: (1, 'Alice', '555-1234, 555-5678')","CREATE TABLE customers (
+  id INT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE customer_phones (
+  id INT PRIMARY KEY,
+  customer_id INT NOT NULL REFERENCES customers(id),
+  phone_number VARCHAR(20) NOT NULL
+);",,"First normal form requires each column to hold a single, atomic value. Storing multiple phone numbers in one column makes querying individual numbers impossible without string parsing. Splitting into a child table (customer_phones) gives each phone number its own row, making it easy to filter, join, and index.",,2026-05-22 16:11:12.967034+00
+SQLI029,intermediate,normalization,fill_in_the_blank,"A table stores order_id, product_name, and product_category. The product_category depends only on product_name, not on order_id. This violates which normal form?
+
+Answer: ___",Second normal form (2NF),,"Second normal form requires that every non-key column depends on the entire primary key, not just part of it. Here product_category depends only on product_name (a partial dependency), not on the full composite key. The fix is to move product_name and product_category into a separate products table referenced by foreign key.",,2026-05-22 16:11:12.967034+00
+SQLI030,intermediate,views,write_the_code,Write a statement to create a view called active_customers that returns the id and name of all customers from the customers table where the is_active column is true.,"CREATE VIEW active_customers AS
+SELECT id, name
+FROM customers
+WHERE is_active = true;",,"A VIEW is a stored SELECT query that behaves like a virtual table. It does not store data itself — it runs the underlying query each time it is accessed. Views simplify complex queries, restrict column access, and provide a stable interface even if the underlying table structure changes.",,2026-05-22 16:11:12.967034+00
+SQLI031,intermediate,views,fill_in_the_blank,"Complete the statement to delete the view called sales_summary:
+
+___ VIEW sales_summary;",DROP VIEW sales_summary;,,"DROP VIEW removes the view definition from the database. Unlike DROP TABLE, no data is lost since a view does not store data. If other views or queries depend on this view, you may need DROP VIEW ... CASCADE to remove dependent objects as well.",,2026-05-22 16:11:12.967034+00
+SQLI032,intermediate,joins,write_the_code,"Write a query to return each department name and the total salary paid in that department. Include departments even if they have no employees (show 0 for total salary in that case). Use departments (columns: id, name) and employees (columns: id, dept_id, salary).","SELECT d.name, COALESCE(SUM(e.salary), 0) AS total_salary
+FROM departments d
+LEFT JOIN employees e ON d.id = e.dept_id
+GROUP BY d.id, d.name;",,"LEFT JOIN keeps all departments even those with no employees. For empty departments, SUM returns NULL, so COALESCE converts it to 0. GROUP BY d.id, d.name groups by department before aggregating. Including d.id in GROUP BY ensures correctness even if two departments share the same name.",,2026-05-22 16:11:12.967034+00
+SQLI033,intermediate,subqueries,spot_the_bug,"The query below is supposed to return the names of employees who earn more than the company-wide average salary, but it returns an error. Find and fix the bug.
+
+SELECT name FROM employees
+WHERE salary > AVG(salary);","SELECT name FROM employees
+WHERE salary > (SELECT AVG(salary) FROM employees);",,"Aggregate functions like AVG cannot be used directly in a WHERE clause because WHERE operates on individual rows before any aggregation occurs. The fix is to compute the average in a scalar subquery, which runs first and produces a single value that WHERE can then compare against.",,2026-05-22 16:11:12.967034+00
+SQLI034,intermediate,string_functions,write_the_code,"Write a query to return each employee's name with all occurrences of the word 'Manager' replaced by 'Lead' in their job_title column. Use the employees table with columns: name, job_title.","SELECT name, REPLACE(job_title, 'Manager', 'Lead') AS job_title
+FROM employees;",,"REPLACE(string, from, to) substitutes all occurrences of the from substring with the to substring. It is case-sensitive in most databases, so 'manager' would not be replaced. The original data in the table is unchanged — REPLACE only transforms the value in the query result.",,2026-05-22 16:11:12.967034+00
+SQLI035,intermediate,date_functions,write_the_code,"Write a query to return the name and hire_date of each employee, along with a column called tenure_years showing how many complete years they have worked. Assume today's date is the reference point. Use the employees table with columns: name, hire_date.","SELECT name, hire_date,
+  EXTRACT(YEAR FROM AGE(NOW(), hire_date)) AS tenure_years
+FROM employees;",,"AGE(now, past_date) computes the interval between two dates as years, months, and days. Wrapping it in EXTRACT(YEAR FROM ...) pulls out only the year component, giving the number of complete years worked. This is a PostgreSQL-compatible approach; other databases may use DATEDIFF.",,2026-05-22 16:11:12.967034+00
+SQLI036,intermediate,aggregation,output_prediction,"Given this table called reviews:
+
+| id | product_id | rating |
+|----|------------|--------|
+| 1  | 1          | 5      |
+| 2  | 1          | 3      |
+| 3  | 2          | 4      |
+| 4  | 2          | 4      |
+| 5  | 2          | 2      |
+
+What does this query return?
+
+SELECT product_id, ROUND(AVG(rating), 1) AS avg_rating, COUNT(*) AS review_count
+FROM reviews
+GROUP BY product_id
+ORDER BY product_id;","1 | 4.0 | 2
+2 | 3.3 | 3",,"GROUP BY product_id forms two groups. For product 1: AVG = (5+3)/2 = 4.0, COUNT = 2. For product 2: AVG = (4+4+2)/3 = 3.333, which ROUND(..., 1) rounds to 3.3, COUNT = 3. ROUND(value, decimal_places) controls the precision of the output.",,2026-05-22 16:11:12.967034+00
+SQLI037,intermediate,joins,output_prediction,"Given these two tables:
+
+authors:
+| id | name         |
+|----|--------------|
+| 1  | J.K. Rowling |
+| 2  | Orwell       |
+
+books:
+| id | title           | author_id |
+|----|-----------------|------------|
+| 1  | Harry Potter    | 1          |
+| 2  | 1984            | 2          |
+| 3  | Animal Farm     | 2          |
+
+What does this query return?
+
+SELECT a.name, COUNT(b.id) AS book_count
+FROM authors a
+LEFT JOIN books b ON a.id = b.author_id
+GROUP BY a.id, a.name
+ORDER BY a.id;","J.K. Rowling | 1
+Orwell | 2",,"LEFT JOIN keeps all authors. COUNT(b.id) counts non-NULL book ids per author group. J.K. Rowling has 1 book; Orwell has 2. Using COUNT(b.id) rather than COUNT(*) is important — if an author had no books, COUNT(*) would return 1 (for the NULL row) while COUNT(b.id) correctly returns 0.",,2026-05-22 16:11:12.967034+00
+SQLI038,intermediate,normalization,spot_the_bug,"The following schema stores redundant data. The manager_name depends on manager_id, not on employee_id, violating third normal form. Rewrite it to fix the 3NF violation.
+
+Current table: employees(employee_id, employee_name, manager_id, manager_name)","CREATE TABLE managers (
+  manager_id INT PRIMARY KEY,
+  manager_name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE employees (
+  employee_id INT PRIMARY KEY,
+  employee_name VARCHAR(100) NOT NULL,
+  manager_id INT REFERENCES managers(manager_id)
+);",,"Third normal form requires that every non-key column depends only on the primary key, not on another non-key column (a transitive dependency). Here manager_name depends on manager_id, not on employee_id. Extracting managers into its own table eliminates the redundancy — manager names are stored once and referenced by foreign key.",,2026-05-22 16:11:12.967034+00
+SQLI039,intermediate,ddl,write_the_code,Write a statement to rename the column phone in the customers table to phone_number.,ALTER TABLE customers RENAME COLUMN phone TO phone_number;,,"ALTER TABLE with RENAME COLUMN changes only the column name — no data is modified, and the column's data type and constraints remain intact. This is standard SQL supported in PostgreSQL, SQLite, and MySQL 8+. Some older MySQL versions require a full CHANGE COLUMN syntax instead.",,2026-05-22 16:11:12.967034+00
+SQLI040,intermediate,subqueries,output_prediction,"Given this table called products:
+
+| id | name     | category    | price |
+|----|----------|-------------|-------|
+| 1  | Widget   | electronics | 100   |
+| 2  | Gadget   | electronics | 200   |
+| 3  | Notebook | stationery  | 5     |
+| 4  | Pen      | stationery  | 2     |
+
+What does this query return?
+
+SELECT name, price
+FROM (
+  SELECT name, price, category
+  FROM products
+  WHERE price > 10
+) AS expensive
+WHERE category = 'electronics';","Widget | 100
+Gadget | 200",,"The inner subquery first filters products where price > 10, returning Widget, Gadget (Notebook at 5 and Pen at 2 are excluded). The outer query then filters from that result set for the 'electronics' category. Using a subquery in FROM (a derived table) is useful for multi-step filtering or pre-aggregating before a join.",,2026-05-22 16:11:12.967034+00
+SQLI041,intermediate,string_functions,output_prediction,"Given this table called contacts:
+
+| id | full_name        |
+|----|------------------|
+| 1  | alice smith      |
+| 2  | bob jones        |
+
+What does this query return?
+
+SELECT UPPER(SUBSTRING(full_name, 1, 1)) || SUBSTRING(full_name, 2) AS formatted_name
+FROM contacts;","Alice smith
+Bob jones",,"SUBSTRING(full_name, 1, 1) extracts the first character. UPPER converts it to uppercase. SUBSTRING(full_name, 2) extracts everything from the second character onward. The || operator concatenates them back together. The result capitalizes only the first letter of each name.",,2026-05-22 16:11:12.967034+00
+SQLI042,intermediate,indexes,fill_in_the_blank,"The following query is slow because the created_at column has no index. Write the statement to create an index that would speed it up:
+
+CREATE INDEX idx_orders_created ON orders ___;",CREATE INDEX idx_orders_created ON orders (created_at);,,"The column list in parentheses tells the database which column(s) to index. CREATE INDEX idx_orders_created ON orders (created_at) creates a B-tree index on created_at, allowing queries that filter or sort by this column to locate rows efficiently instead of scanning the entire table.",,2026-05-22 16:11:12.967034+00
+SQLI043,intermediate,views,spot_the_bug,"The following view is supposed to show each product name and its category name by joining products and categories. It has a bug — find and fix it.
+
+CREATE VIEW product_catalog AS
+SELECT p.name, c.category_name
+FROM products p
+JOIN categories c;","CREATE VIEW product_catalog AS
+SELECT p.name, c.category_name
+FROM products p
+JOIN categories c ON p.category_id = c.id;",,"A JOIN without an ON clause produces a cross join — every row in products combined with every row in categories, which is almost never the intended result. Adding ON p.category_id = c.id restricts the join to only matching rows, correctly pairing each product with its category.",,2026-05-22 16:11:12.967034+00
+SQLI044,intermediate,date_functions,fill_in_the_blank,"Complete the query to truncate each order's order_date to the start of the month (e.g., 2024-03-15 becomes 2024-03-01):
+
+SELECT id, DATE_TRUNC('___', order_date) AS month_start FROM orders;","SELECT id, DATE_TRUNC('month', order_date) AS month_start FROM orders;",,"DATE_TRUNC truncates a timestamp to the specified precision. Passing 'month' sets the day to 1 and the time to 00:00:00, effectively giving the first moment of the month. This is heavily used in time-series reporting to group records by month, quarter, or year.",,2026-05-22 16:11:12.967034+00
+SQLI045,intermediate,case_when,spot_the_bug,"The query below is supposed to label each order as 'High', 'Medium', or 'Low' based on the total column, but it always returns 'Low'. Find and fix the bug.
+
+SELECT id,
+  CASE
+    WHEN total > 100 THEN 'High'
+    WHEN total > 500 THEN 'Medium'
+    ELSE 'Low'
+  END AS priority
+FROM orders;","SELECT id,
+  CASE
+    WHEN total > 500 THEN 'High'
+    WHEN total > 100 THEN 'Medium'
+    ELSE 'Low'
+  END AS priority
+FROM orders;",,"CASE WHEN evaluates conditions from top to bottom and returns the first match. In the original, total > 100 is checked first — any order with total > 500 also satisfies total > 100, so it incorrectly gets 'High' before reaching the 'Medium' check. Reversing the order — checking the stricter condition first — fixes the logic.",,2026-05-22 16:11:12.967034+00
+SQLS001,simple,select,output_prediction,"Given this table called products:
+
+| id | name    | price |
+|----|---------|-------|
+| 1  | Apple   | 1.20  |
+| 2  | Banana  | 0.50  |
+| 3  | Cherry  | 2.00  |
+
+What does this query return?
+
+SELECT name FROM products;","Apple
+Banana
+Cherry",,SELECT name retrieves only the name column from every row in the products table. No WHERE clause means all rows are included. The result is the names in the order they are stored.,,2026-05-22 16:11:12.744854+00
+SQLS002,simple,select,output_prediction,"Given this table called employees:
+
+| id | name    | department | salary |
+|----|---------|------------|--------|
+| 1  | Alice   | HR         | 50000  |
+| 2  | Bob     | IT         | 70000  |
+| 3  | Carol   | IT         | 65000  |
+
+What does this query return?
+
+SELECT name, department FROM employees WHERE department = 'IT';","Bob | IT
+Carol | IT",,"The WHERE clause filters rows where department equals 'IT'. Bob and Carol both work in IT; Alice does not. SELECT name, department returns those two columns for the matching rows.",,2026-05-22 16:11:12.744854+00
+SQLS003,simple,select,fill_in_the_blank,"Complete the query to retrieve all columns from the customers table:
+
+SELECT ___ FROM customers;",SELECT * FROM customers;,,The asterisk (*) is a wildcard that tells SQL to return every column in the table. It is a shorthand for listing every column name individually.,,2026-05-22 16:11:12.744854+00
+SQLS004,simple,filtering,output_prediction,"Given this table called orders:
+
+| id | customer | amount |
+|----|----------|--------|
+| 1  | Alice    | 120    |
+| 2  | Bob      | 80     |
+| 3  | Alice    | 200    |
+| 4  | Carol    | 45     |
+
+What does this query return?
+
+SELECT customer, amount FROM orders WHERE amount > 100;","Alice | 120
+Alice | 200",,"The WHERE clause keeps only rows where amount is greater than 100. That matches rows with amounts 120 and 200, both belonging to Alice. Bob's 80 and Carol's 45 are excluded.",,2026-05-22 16:11:12.744854+00
+SQLS005,simple,filtering,fill_in_the_blank,"Complete the query to find all employees whose salary is between 40000 and 60000 (inclusive):
+
+SELECT name FROM employees WHERE salary ___ 40000 AND 60000;",SELECT name FROM employees WHERE salary BETWEEN 40000 AND 60000;,,BETWEEN is an inclusive range operator. WHERE salary BETWEEN 40000 AND 60000 is equivalent to WHERE salary >= 40000 AND salary <= 60000. It reads naturally and is the standard way to express range conditions in SQL.,,2026-05-22 16:11:12.744854+00
+SQLS006,simple,filtering,write_the_code,Write a query to select the name and price of all products from the products table where the price is less than 10.,"SELECT name, price FROM products WHERE price < 10;",,SELECT specifies which columns to return. FROM identifies the table. The WHERE clause with the < operator filters rows to only those with a price below 10.,,2026-05-22 16:11:12.744854+00
+SQLS007,simple,filtering,output_prediction,"Given this table called users:
+
+| id | username | active |
+|----|----------|--------|
+| 1  | alice    | true   |
+| 2  | bob      | false  |
+| 3  | carol    | true   |
+| 4  | dave     | false  |
+
+What does this query return?
+
+SELECT username FROM users WHERE active = true AND username LIKE 'a%';",alice,,The WHERE clause requires two conditions: active must be true AND the username must start with 'a'. Only alice satisfies both. carol is active but does not start with 'a'. dave and bob are not active.,,2026-05-22 16:11:12.744854+00
+SQLS008,simple,filtering,fill_in_the_blank,"Complete the query to find all customers whose city is either 'London' or 'Paris':
+
+SELECT name FROM customers WHERE city ___ ('London', 'Paris');","SELECT name FROM customers WHERE city IN ('London', 'Paris');",,The IN operator checks whether a column value matches any value in a provided list. It is cleaner than writing multiple OR conditions and is standard SQL supported by all major databases.,,2026-05-22 16:11:12.744854+00
+SQLS009,simple,ordering,output_prediction,"Given this table called students:
+
+| id | name    | grade |
+|----|---------|-------|
+| 1  | Zara    | 88    |
+| 2  | Adam    | 95    |
+| 3  | Maria   | 76    |
+
+What does this query return?
+
+SELECT name, grade FROM students ORDER BY grade DESC;","Adam | 95
+Zara | 88
+Maria | 76",,"ORDER BY grade DESC sorts the rows by the grade column from highest to lowest. Adam has 95 (highest), then Zara with 88, then Maria with 76. DESC means descending order.",,2026-05-22 16:11:12.744854+00
+SQLS010,simple,ordering,fill_in_the_blank,"Complete the query to return the top 3 most expensive products:
+
+SELECT name, price FROM products ORDER BY price DESC ___ 3;","SELECT name, price FROM products ORDER BY price DESC LIMIT 3;",,"LIMIT restricts the number of rows returned. Combined with ORDER BY price DESC, it first sorts all products from most to least expensive, then returns only the first 3 rows of that sorted result.",,2026-05-22 16:11:12.744854+00
+SQLS011,simple,ordering,write_the_code,"Write a query to select all columns from the employees table, ordered alphabetically by last_name. If two employees share the same last_name, order them by first_name alphabetically.","SELECT * FROM employees ORDER BY last_name ASC, first_name ASC;","SELECT * FROM employees ORDER BY last_name, first_name;","ORDER BY accepts multiple columns separated by commas. The database sorts by last_name first; for ties, it uses first_name as a tiebreaker. ASC is the default sort direction and can be omitted, but writing it explicitly improves readability.",,2026-05-22 16:11:12.744854+00
+SQLS012,simple,aggregation,output_prediction,"Given this table called sales:
+
+| id | region | amount |
+|----|--------|--------|
+| 1  | North  | 500    |
+| 2  | South  | 300    |
+| 3  | North  | 700    |
+| 4  | East   | 200    |
+
+What does this query return?
+
+SELECT COUNT(*) FROM sales;",4,,"COUNT(*) counts every row in the table regardless of column values or NULLs. There are 4 rows in the sales table, so the result is 4.",,2026-05-22 16:11:12.744854+00
+SQLS013,simple,aggregation,output_prediction,"Given this table called salaries:
+
+| id | name  | amount |
+|----|-------|--------|
+| 1  | Alice | 60000  |
+| 2  | Bob   | 80000  |
+| 3  | Carol | 50000  |
+
+What does this query return?
+
+SELECT MAX(amount), MIN(amount) FROM salaries;",80000 | 50000,,"MAX returns the largest value in the amount column (80000, belonging to Bob) and MIN returns the smallest (50000, belonging to Carol). Both aggregates operate across all rows and return a single row with two values.",,2026-05-22 16:11:12.744854+00
+SQLS014,simple,aggregation,fill_in_the_blank,"Complete the query to find the total revenue from all orders:
+
+SELECT ___(total_price) FROM orders;",SELECT SUM(total_price) FROM orders;,,SUM adds up all non-NULL values in the specified column. It is the standard aggregate function for calculating totals and is supported by all relational databases.,,2026-05-22 16:11:12.744854+00
+SQLS015,simple,aggregation,write_the_code,Write a query to find the average salary of all employees in the employees table. Return the result with the alias average_salary.,SELECT AVG(salary) AS average_salary FROM employees;,,AVG computes the mean of all non-NULL values in the salary column. The AS keyword creates an alias so the output_prediction column is labeled average_salary instead of the default function name.,,2026-05-22 16:11:12.744854+00
+SQLS016,simple,aggregation,output_prediction,"Given this table called orders:
+
+| id | customer | status   |
+|----|----------|----------|
+| 1  | Alice    | shipped  |
+| 2  | Bob      | pending  |
+| 3  | Carol    | shipped  |
+| 4  | Dave     | shipped  |
+
+What does this query return?
+
+SELECT status, COUNT(*) FROM orders GROUP BY status;","shipped | 3
+pending | 1","pending | 1
+shipped | 3",GROUP BY status groups the rows by their status value. COUNT(*) then counts rows within each group. There are 3 rows with status 'shipped' and 1 with 'pending'. The order of groups in the output_prediction is not guaranteed without ORDER BY.,,2026-05-22 16:11:12.744854+00
+SQLS017,simple,aggregation,fill_in_the_blank,"Complete the query to return only departments that have more than 5 employees:
+
+SELECT department, COUNT(*) FROM employees GROUP BY department ___ COUNT(*) > 5;","SELECT department, COUNT(*) FROM employees GROUP BY department HAVING COUNT(*) > 5;",,"HAVING filters groups after GROUP BY has formed them. WHERE cannot be used here because it filters individual rows before grouping. HAVING is the correct clause for filtering based on aggregate results like COUNT, SUM, or AVG.",,2026-05-22 16:11:12.744854+00
+SQLS018,simple,select,output_prediction,"Given this table called products:
+
+| id | category | name      |
+|----|----------|-----------|
+| 1  | fruit    | Apple     |
+| 2  | vegetable| Carrot    |
+| 3  | fruit    | Banana    |
+| 4  | fruit    | Mango     |
+
+What does this query return?
+
+SELECT DISTINCT category FROM products;","fruit
+vegetable","vegetable
+fruit","DISTINCT eliminates duplicate values in the result. Even though 'fruit' appears three times in the table, it appears only once in the output_prediction. The order of distinct values is not guaranteed without ORDER BY.",,2026-05-22 16:11:12.744854+00
+SQLS019,simple,null_handling,output_prediction,"Given this table called contacts:
+
+| id | name    | phone        |
+|----|---------|-------------- |
+| 1  | Alice   | 555-1234      |
+| 2  | Bob     | NULL          |
+| 3  | Carol   | 555-5678      |
+| 4  | Dave    | NULL          |
+
+What does this query return?
+
+SELECT name FROM contacts WHERE phone IS NULL;","Bob
+Dave",,"NULL represents a missing or unknown value. You cannot use = NULL to check for it — that always evaluates to NULL (unknown), never true. IS NULL is the correct syntax and correctly identifies Bob and Carol who have no phone on record.",,2026-05-22 16:11:12.744854+00
+SQLS020,simple,null_handling,fill_in_the_blank,"Complete the query to display each employee's bonus, showing 0 if the bonus is NULL:
+
+SELECT name, ___(bonus, 0) AS bonus FROM employees;","SELECT name, COALESCE(bonus, 0) AS bonus FROM employees;",,"COALESCE returns the first non-NULL value from its argument list. Here, if bonus is NULL, it returns 0 instead. This is the standard SQL way to substitute a default value for NULLs.",,2026-05-22 16:11:12.744854+00
+SQLS021,simple,null_handling,spot_the_bug,"The following query is supposed to find all products with no description, but it returns no rows even though some descriptions are NULL. Find and fix the bug.
+
+SELECT name FROM products WHERE description = NULL;",SELECT name FROM products WHERE description IS NULL;,,"Comparing any value to NULL using = always produces NULL (unknown), never TRUE. As a result, no rows pass the filter. The correct operator is IS NULL, which is specifically designed to test for the absence of a value.",,2026-05-22 16:11:12.744854+00
+SQLS022,simple,dml,write_the_code,"Write a SQL statement to insert a new row into the products table with the following values: name = 'Laptop', price = 999.99, category = 'Electronics'.","INSERT INTO products (name, price, category) VALUES ('Laptop', 999.99, 'Electronics');",,INSERT INTO specifies the target table. The column list in parentheses defines which columns receive values. VALUES provides the corresponding data in the same order. String literals must be enclosed in single quotes.,,2026-05-22 16:11:12.744854+00
+SQLS023,simple,dml,write_the_code,Write a SQL statement to update the price of the product with id = 5 to 49.99 in the products table.,UPDATE products SET price = 49.99 WHERE id = 5;,,UPDATE modifies existing rows. SET specifies which column to change and its new value. The WHERE clause restricts the update to only the row with id = 5. Omitting WHERE would update every row in the table.,,2026-05-22 16:11:12.744854+00
+SQLS024,simple,dml,spot_the_bug,"The following query is supposed to delete all orders with status 'cancelled', but it has a bug. Find and fix it.
+
+DELETE orders WHERE status = 'cancelled';",DELETE FROM orders WHERE status = 'cancelled';,,The DELETE statement requires the FROM keyword between DELETE and the table name. The correct syntax is DELETE FROM table_name. Omitting FROM is a syntax error in standard SQL.,,2026-05-22 16:11:12.744854+00
+SQLS025,simple,dml,fill_in_the_blank,"Complete the statement to increase the salary of every employee in the 'Sales' department by 10%:
+
+___ employees SET salary = salary * 1.10 WHERE department = 'Sales';",UPDATE employees SET salary = salary * 1.10 WHERE department = 'Sales';,,"UPDATE is the DML command used to modify existing rows. It is followed by the table name, then SET to specify the new values, and optionally WHERE to restrict which rows are affected.",,2026-05-22 16:11:12.744854+00
+SQLS026,simple,ddl,write_the_code,"Write a SQL statement to create a table called books with the following columns: id (integer, primary key), title (variable-length text up to 200 characters, cannot be null), and published_year (integer).","CREATE TABLE books (
+  id INT PRIMARY KEY,
+  title VARCHAR(200) NOT NULL,
+  published_year INT
+);",,CREATE TABLE defines the structure of a new table. Each column definition includes the column name and its data type. PRIMARY KEY marks id as the unique row identifier. NOT NULL ensures title can never be omitted. published_year has no constraint so it can be NULL.,,2026-05-22 16:11:12.744854+00
+SQLS027,simple,ddl,fill_in_the_blank,"Complete the statement to permanently remove the archived_logs table from the database:
+
+___ TABLE archived_logs;",DROP TABLE archived_logs;,,"DROP TABLE permanently deletes the table and all its data from the database. Unlike DELETE which removes rows, DROP removes the table structure itself. This operation cannot be undone unless you are inside a transaction.",,2026-05-22 16:11:12.744854+00
+SQLS028,simple,ddl,write_the_code,Write a SQL statement to add a new column called email of type VARCHAR(255) to the existing users table.,ALTER TABLE users ADD COLUMN email VARCHAR(255);,ALTER TABLE users ADD email VARCHAR(255);,ALTER TABLE modifies an existing table's structure without touching its data. ADD COLUMN (or just ADD in some dialects) appends a new column. The new column will be NULL for all existing rows unless a DEFAULT is specified.,,2026-05-22 16:11:12.744854+00
+SQLS029,simple,select,output_prediction,"Given this table called employees:
+
+| id | first_name | last_name |
+|----|------------|-----------|
+| 1  | John       | Smith     |
+| 2  | Jane       | Doe       |
+
+What does this query return?
+
+SELECT first_name || ' ' || last_name AS full_name FROM employees;","John Smith
+Jane Doe",,"The || operator concatenates strings in standard SQL. Here it joins first_name, a literal space, and last_name into a single string. The AS keyword aliases the resulting column as full_name.",,2026-05-22 16:11:12.744854+00
+SQLS030,simple,filtering,output_prediction,"Given this table called inventory:
+
+| id | item    | quantity |
+|----|---------|----------|
+| 1  | Pen     | 100      |
+| 2  | Notebook| 50       |
+| 3  | Stapler | 20       |
+| 4  | Tape    | 75       |
+
+What does this query return?
+
+SELECT item FROM inventory WHERE quantity BETWEEN 50 AND 100;","Pen
+Notebook
+Tape",,"BETWEEN is inclusive on both ends. Pen (100), Notebook (50), and Tape (75) all fall within 50 to 100 inclusive. Stapler (20) is below the lower bound and is excluded.",,2026-05-22 16:11:12.744854+00
+SQLS031,simple,filtering,fill_in_the_blank,"Complete the query to find all product names that start with the letter 'S':
+
+SELECT name FROM products WHERE name ___ 'S%';",SELECT name FROM products WHERE name LIKE 'S%';,,LIKE enables pattern matching on string columns. The % wildcard matches any sequence of characters (including none). 'S%' matches any string that begins with the letter 'S' followed by anything.,,2026-05-22 16:11:12.744854+00
+SQLS032,simple,select,output_prediction,"Given this table called scores:
+
+| id | player  | score |
+|----|---------|-------|
+| 1  | Alice   | 300   |
+| 2  | Bob     | 150   |
+| 3  | Carol   | 300   |
+| 4  | Dave    | 200   |
+
+What does this query return?
+
+SELECT score FROM scores ORDER BY score DESC LIMIT 2 OFFSET 1;","300
+200",,"ORDER BY score DESC sorts: 300, 300, 200, 150. OFFSET 1 skips the first row (the first 300). LIMIT 2 then returns the next 2 rows: 300 and 200. OFFSET is commonly used for pagination.",,2026-05-22 16:11:12.744854+00
+SQLS033,simple,aggregation,spot_the_bug,"The following query is supposed to return the number of orders per customer, but it has a bug. Find and fix it.
+
+SELECT customer_id, COUNT(*) AS order_count FROM orders;","SELECT customer_id, COUNT(*) AS order_count FROM orders GROUP BY customer_id;",,"When you use an aggregate function like COUNT alongside a non-aggregated column like customer_id, you must include a GROUP BY clause listing all non-aggregated columns. Without it, the database does not know how to group the rows and will raise an error.",,2026-05-22 16:11:12.744854+00
+SQLS034,simple,select,fill_in_the_blank,"Complete the query to give the price column a more readable label in the output_prediction:
+
+SELECT name, price ___ unit_price FROM products;","SELECT name, price AS unit_price FROM products;",,"AS creates a column alias, which changes the label of a column in the query result without modifying the underlying data. It improves readability of output_prediction and is especially useful when using expressions or aggregate functions.",,2026-05-22 16:11:12.744854+00
+SQLS035,simple,null_handling,write_the_code,"Write a query that selects the name and email from the customers table. For any customer whose email is NULL, display the text 'no email' instead.","SELECT name, COALESCE(email, 'no email') AS email FROM customers;",,"COALESCE takes a list of arguments and returns the first one that is not NULL. If email has a value, it is returned as-is. If email is NULL, COALESCE returns the fallback string 'no email'. The AS alias keeps the output_prediction column labeled email.",,2026-05-22 16:11:12.744854+00

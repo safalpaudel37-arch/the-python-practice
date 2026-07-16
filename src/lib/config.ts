@@ -8,6 +8,7 @@ export const AUTO_CHECK_TYPES = new Set([
   'fill_in_the_blank',
   'output_prediction',
   'what_is_the_result',
+  'spot_the_bug',
 ]);
 
 export const TIER_LABELS: Record<string, string> = {

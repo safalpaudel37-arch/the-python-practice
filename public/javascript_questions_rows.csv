@@ -1,0 +1,1971 @@
+id,tier,topic,type,question,answer,alternative_answer,explanation,expected_output,created_at
+JSA001,expert,memoization,write_the_code,"Write a function memoize(fn) that caches results keyed by the first argument. The original function should only run on a cache miss.
+
+const square = memoize(n => {
+  console.log('computing');
+  return n * n;
+});
+square(4); // logs 'computing', returns 16
+square(4); // returns 16, no log
+square(5); // logs 'computing', returns 25","function memoize(fn) {
+  const cache = new Map();
+  return function(arg) {
+    if (cache.has(arg)) return cache.get(arg);
+    const result = fn(arg);
+    cache.set(arg, result);
+    return result;
+  };
+}",,"A Map is used rather than a plain object so that non-string keys (numbers, objects) are stored correctly. On each call the cache is checked first; only on a miss is fn called and its result stored. This trades memory for speed — each unique input is computed at most once.",,2026-05-15 16:57:21.711974+00
+JSA002,expert,iterators,write_the_code,"Make the range object iterable by implementing Symbol.iterator, so it works with for...of and spread.
+
+const range = { start: 1, end: 4 };
+// After your addition:
+console.log([...range]); // [1, 2, 3, 4]","const range = {
+  start: 1,
+  end: 4,
+  [Symbol.iterator]() {
+    let current = this.start;
+    const end = this.end;
+    return {
+      next() {
+        if (current <= end) return { value: current++, done: false };
+        return { value: undefined, done: true };
+      }
+    };
+  }
+};",,"The iteration protocol requires a [Symbol.iterator]() method that returns an iterator object with a next() method. next() must return { value, done }. When done is true, iteration stops. Capturing end in a local variable avoids issues if this changes context inside the returned object.",,2026-05-15 16:57:21.711974+00
+JSA003,expert,promises,write_the_code,"Implement settleAll(promises) without using Promise.allSettled. It should return a Promise that resolves to an array where fulfilled Promises produce { status: 'fulfilled', value } and rejected Promises produce { status: 'rejected', reason }.
+
+settleAll([Promise.resolve(1), Promise.reject('err'), Promise.resolve(3)])
+  .then(console.log);
+// [{status:'fulfilled',value:1},{status:'rejected',reason:'err'},{status:'fulfilled',value:3}]","function settleAll(promises) {
+  return Promise.all(
+    promises.map(p =>
+      Promise.resolve(p)
+        .then(value => ({ status: 'fulfilled', value }))
+        .catch(reason => ({ status: 'rejected', reason }))
+    )
+  );
+}",,"Wrapping each Promise in its own .then/.catch converts both outcomes into resolved values shaped like the allSettled format. Promise.all then waits for all of them — since none can reject (errors are caught), it always fulfils with the full array.",,2026-05-15 16:57:21.711974+00
+JSA004,expert,weakmap,write_the_code,"Write a class BankAccount that uses a WeakMap to store a private balance inaccessible from outside the class. Provide deposit(amount) and getBalance() methods.
+
+const acc = new BankAccount(100);
+acc.deposit(50);
+console.log(acc.getBalance()); // 150
+console.log(acc._balance);     // undefined","const _balances = new WeakMap();
+
+class BankAccount {
+  constructor(initial) {
+    _balances.set(this, initial);
+  }
+  deposit(amount) {
+    _balances.set(this, _balances.get(this) + amount);
+  }
+  getBalance() {
+    return _balances.get(this);
+  }
+}",,"WeakMap keys are objects (here, the instance), not strings. Storing data in a module-scoped WeakMap means no instance property exists to read directly. WeakMap entries are also garbage-collected when the instance is collected, preventing memory leaks — an advantage over a regular Map.",,2026-05-15 16:57:21.711974+00
+JSA005,expert,proxy,write_the_code,"Write a function makeReadonly(obj) that returns a Proxy that throws a TypeError whenever any property is set.
+
+const config = makeReadonly({ host: 'localhost', port: 3000 });
+console.log(config.host); // 'localhost'
+config.port = 8080;       // throws TypeError","function makeReadonly(obj) {
+  return new Proxy(obj, {
+    set(target, prop) {
+      throw new TypeError('Cannot set property on readonly object');
+    }
+  });
+}",,The Proxy set trap intercepts all property assignments. Throwing inside the trap prevents the assignment and surfaces the error to the caller. Reads fall through to the target via the default get behaviour (no get trap needed).,,2026-05-15 16:57:21.711974+00
+JSA006,expert,generators,write_the_code,"Write an infinite generator function fibonacci() that yields Fibonacci numbers starting from 0.
+
+const gen = fibonacci();
+console.log(gen.next().value); // 0
+console.log(gen.next().value); // 1
+console.log(gen.next().value); // 1
+console.log(gen.next().value); // 2
+console.log(gen.next().value); // 3","function* fibonacci() {
+  let [a, b] = [0, 1];
+  while (true) {
+    yield a;
+    [a, b] = [b, a + b];
+  }
+}",,"Destructuring assignment [a, b] = [b, a + b] updates both values simultaneously without a temporary variable. The infinite while loop is safe in a generator because yield pauses execution — the caller controls when to ask for the next value.",,2026-05-15 16:57:21.711974+00
+JSA007,expert,tagged-templates,write_the_code,"Write a tag function highlight that wraps every interpolated value in angle brackets.
+
+const name = 'Alice';
+const score = 42;
+console.log(highlight`Player ${name} scored ${score} points`);
+// 'Player <Alice> scored <42> points'","function highlight(strings, ...values) {
+  return strings.reduce((result, str, i) => {
+    return result + str + (values[i] !== undefined ? `<${values[i]}>` : '');
+  }, '');
+}",,A tagged template receives the static string parts as an array and the interpolated values as rest parameters. There is always one more string part than value (strings.length === values.length + 1). reduce walks each string segment and appends the matching value (if any) wrapped in angle brackets.,,2026-05-15 16:57:21.711974+00
+JSA008,expert,functional,write_the_code,"Write a function partial(fn, ...presetArgs) that returns a new function with the first arguments pre-filled.
+
+const multiply = (a, b, c) => a * b * c;
+const double = partial(multiply, 2);
+console.log(double(3, 4)); // 24","function partial(fn, ...presetArgs) {
+  return function(...laterArgs) {
+    return fn(...presetArgs, ...laterArgs);
+  };
+}","const partial = (fn, ...presetArgs) => (...laterArgs) => fn(...presetArgs, ...laterArgs);","partial captures presetArgs in a closure. When the returned function is called with laterArgs, both arrays are spread into fn. double = partial(multiply, 2) binds a=2; calling double(3, 4) provides b=3 and c=4, computing 2*3*4=24.",,2026-05-15 16:57:21.711974+00
+JSA009,expert,functional,write_the_code,"Write a function pipe(...fns) that returns a function which applies each function left-to-right, passing each result as input to the next.
+
+const process = pipe(
+  x => x * 2,
+  x => x + 1,
+  x => x ** 2
+);
+console.log(process(3)); // ((3*2)+1)^2 = 49","function pipe(...fns) {
+  return x => fns.reduce((acc, fn) => fn(acc), x);
+}",,"pipe is left-to-right composition. reduce threads the accumulator through each function in order. Starting with x=3: 3*2=6 → 6+1=7 → 7**2=49. This is the mirror of compose, which applies right-to-left.",,2026-05-15 16:57:21.711974+00
+JSA010,expert,symbols,write_the_code,"Write a class Temperature with a constructor(celsius) and Symbol.toPrimitive. When hinted as 'string' return '${celsius}°C'; for all other hints return the numeric celsius value.
+
+const t = new Temperature(100);
+console.log(+t);     // 100
+console.log(`${t}`); // '100°C'
+console.log(t + 0);  // 100","class Temperature {
+  constructor(celsius) {
+    this.celsius = celsius;
+  }
+  [Symbol.toPrimitive](hint) {
+    if (hint === 'string') return `${this.celsius}°C`;
+    return this.celsius;
+  }
+}",,"Symbol.toPrimitive is called whenever the engine needs to coerce an object to a primitive. The hint argument is 'string', 'number', or 'default'. Template literals use 'string'; the unary + and arithmetic use 'number' or 'default'.",,2026-05-15 16:57:21.711974+00
+JSA011,expert,async-await,write_the_code,"Write an async function trySave(data) that awaits saveData(data). On success return { success: true, result }. On failure return { success: false, error: error.message }. Always log 'done' regardless of outcome.
+
+// Assume saveData(data) is defined and returns a Promise","async function trySave(data) {
+  try {
+    const result = await saveData(data);
+    return { success: true, result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  } finally {
+    console.log('done');
+  }
+}",,try/catch/finally works with async/await exactly as with synchronous code. The finally block always executes — after either the try or catch block — before the function's returned Promise resolves. Returning inside catch gives the caller a safe result rather than a rejected Promise.,,2026-05-15 16:57:21.711974+00
+JSA012,expert,closures,write_the_code,"Write an IIFE that creates a private counter module. Return an object with increment() and getCount(). The count variable must be unreachable from outside.
+
+const counter = /* your IIFE */;
+counter.increment();
+counter.increment();
+console.log(counter.getCount()); // 2
+console.log(counter.count);      // undefined","const counter = (function() {
+  let count = 0;
+  return {
+    increment() { count++; },
+    getCount() { return count; }
+  };
+})();",,"An IIFE (Immediately Invoked Function Expression) runs once and returns an object. The returned methods close over count, which lives in the IIFE's scope — inaccessible from outside. This is the classic module pattern predating ES modules.",,2026-05-15 16:57:21.711974+00
+JSA013,expert,event-loop,output_prediction,"What will the following code log to the console?
+
+console.log('1');
+setTimeout(() => console.log('2'), 0);
+Promise.resolve().then(() => {
+  console.log('3');
+  setTimeout(() => console.log('4'), 0);
+}).then(() => console.log('5'));
+console.log('6');","1
+6
+3
+5
+2
+4",,"Synchronous code runs first: '1', '6'. Promise microtasks run before macrotasks: the first .then fires ('3'), scheduling a new macrotask ('4') and queueing the next .then. That next .then fires ('5') before any macrotask. Then the macrotask queue runs in order: '2' (scheduled first), then '4'.",,2026-05-15 16:57:21.711974+00
+JSA014,expert,promises,output_prediction,"What will the following code log to the console?
+
+const p1 = new Promise(resolve => setTimeout(() => resolve('slow'), 200));
+const p2 = new Promise(resolve => setTimeout(() => resolve('fast'), 100));
+Promise.race([p1, p2]).then(console.log);",fast,,"Promise.race resolves or rejects as soon as the first Promise in the array settles. p2 resolves after 100 ms, before p1 at 200 ms. race adopts p2's value and the .then logs 'fast'. p1 still resolves later, but race ignores subsequent settlements.",,2026-05-15 16:57:21.711974+00
+JSA015,expert,async-await,output_prediction,"What will the following code log to the console?
+
+async function run() {
+  const a = await Promise.resolve(1);
+  const b = await Promise.resolve(a + 2);
+  const c = await Promise.resolve(b * 3);
+  console.log(c);
+}
+run();",9,,"Each await unwraps the resolved value sequentially: a=1, b=1+2=3, c=3*3=9. Even though each Promise.resolve schedules a microtask, the async function resumes in order. The final console.log prints 9.",,2026-05-15 16:57:21.711974+00
+JSA016,expert,generators,output_prediction,"What will the following code log to the console?
+
+function* gen() {
+  yield 1;
+  return 2;
+  yield 3;
+}
+const g = gen();
+console.log(JSON.stringify(g.next()));
+console.log(JSON.stringify(g.next()));
+console.log(JSON.stringify(g.next()));","{""value"":1,""done"":false}
+{""value"":2,""done"":true}
+{""value"":undefined,""done"":true}",,"yield 1 produces {value:1, done:false}. return 2 ends the generator immediately, producing {value:2, done:true}. yield 3 is unreachable. After the generator is done, every subsequent next() returns {value:undefined, done:true}. JSON.stringify omits undefined values in objects, but the structure still shows done:true.",,2026-05-15 16:57:21.711974+00
+JSA017,expert,tagged-templates,output_prediction,"What will the following code log to the console?
+
+function tag(strings) {
+  return strings.raw[0];
+}
+console.log(tag`Hello\nWorld`);",Hello\nWorld,,"strings.raw contains the unprocessed template strings — backslash sequences are not interpreted. The raw string has a literal backslash followed by 'n', not a newline character. This is how String.raw works under the hood.",,2026-05-15 16:57:21.711974+00
+JSA018,expert,proxy,output_prediction,"What will the following code log to the console?
+
+const handler = {
+  get(target, prop) {
+    return prop in target ? target[prop] : `'${prop}' not found`;
+  }
+};
+const obj = new Proxy({ name: 'Alice' }, handler);
+console.log(obj.name);
+console.log(obj.age);","Alice
+'age' not found",,"The get trap intercepts every property access. For 'name', the prop exists in target so target[prop] ('Alice') is returned. For 'age', it does not exist, so the fallback string is returned. Without the Proxy, obj.age would be undefined.",,2026-05-15 16:57:21.711974+00
+JSA019,expert,symbols,output_prediction,"What will the following code log to the console?
+
+const s1 = Symbol('id');
+const s2 = Symbol('id');
+console.log(s1 === s2);
+console.log(typeof s1);","false
+symbol",,"Every Symbol() call creates a unique primitive — the description string is only for debugging. s1 and s2 are different symbols, so strict equality is false. typeof any Symbol returns the lowercase string 'symbol'.",,2026-05-15 16:57:21.711974+00
+JSA020,expert,async-await,output_prediction,"What will the following code log to the console?
+
+async function fail() {
+  throw new Error('oops');
+}
+async function run() {
+  try {
+    await fail();
+  } catch (e) {
+    console.log('caught:', e.message);
+  }
+}
+run();",caught: oops,,"An async function that throws wraps the error in a rejected Promise. await inside try/catch converts that rejected Promise into a thrown exception, which is caught by the catch block. e.message is the Error's message property, 'oops'.",,2026-05-15 16:57:21.711974+00
+JSA021,expert,closures,output_prediction,"What will the following code log to the console?
+
+const result = (function() {
+  let x = 10;
+  return x * 2;
+})();
+console.log(result);
+console.log(typeof x);","20
+undefined",,"The IIFE runs immediately, returning 10*2=20 which is stored in result. The variable x is scoped inside the IIFE and is not accessible in the outer scope. typeof on an undeclared variable returns 'undefined' rather than throwing a ReferenceError.",,2026-05-15 16:57:21.711974+00
+JSA022,expert,promises,output_prediction,"What will the following code log to the console?
+
+Promise.allSettled([
+  Promise.resolve('ok'),
+  Promise.reject('fail')
+]).then(results => {
+  console.log(results[0].status);
+  console.log(results[1].reason);
+});","fulfilled
+fail",,"Promise.allSettled always fulfils with an array of result objects — one per input Promise. Fulfilled Promises get {status:'fulfilled', value}; rejected Promises get {status:'rejected', reason}. It never rejects itself, unlike Promise.all.",,2026-05-15 16:57:21.711974+00
+JSA023,expert,generators,output_prediction,"What will the following code log to the console?
+
+function* inner() {
+  yield 'a';
+  yield 'b';
+}
+function* outer() {
+  yield 1;
+  yield* inner();
+  yield 2;
+}
+console.log([...outer()]);","[1,""a"",""b"",2]",,"yield* delegates to another iterable — it forwards each value from inner() as if those yields were written inline in outer(). The spread collects all yielded values in order: 1 from outer, 'a' and 'b' from inner, then 2 from outer.",,2026-05-15 16:57:21.711974+00
+JSA024,expert,weakmap,output_prediction,"What will the following code log to the console?
+
+const wm = new WeakMap();
+const key1 = {};
+const key2 = {};
+wm.set(key1, 'first');
+wm.set(key2, 'second');
+console.log(wm.get(key1));
+console.log(wm.has(key2));
+console.log(wm.size);","first
+true
+undefined",,"WeakMap.get and .has work as expected. However, WeakMap intentionally has no .size property (returns undefined) and no iteration methods. This is by design — exposing the count would prevent garbage collection of unreachable keys.",,2026-05-15 16:57:21.711974+00
+JSA025,expert,symbols,what_is_the_result,"What will the following code log to the console?
+
+console.log(typeof Symbol('test'));",symbol,,"Symbol is a primitive type in JavaScript (alongside number, string, boolean, null, undefined, and bigint). typeof any Symbol value returns the lowercase string 'symbol'.",,2026-05-15 16:57:21.711974+00
+JSA026,expert,set,what_is_the_result,"What will the following code log to the console?
+
+const set = new Set([1, 2, 2, 3, 3, 3]);
+console.log(set.size);",3,,"Set stores only unique values using the SameValueZero algorithm. Duplicate entries (2 and 3) are silently ignored during construction. The resulting Set contains {1, 2, 3}, so size is 3.",,2026-05-15 16:57:21.711974+00
+JSA027,expert,async-await,what_is_the_result,"What will the following code log to the console?
+
+async function getValue() {
+  return 42;
+}
+console.log(getValue() instanceof Promise);",true,,"async functions always return a Promise, even when the return value is a plain number. getValue() returns a Promise that resolves to 42. The instanceof check confirms this — the return value is a genuine Promise instance.",,2026-05-15 16:57:21.711974+00
+JSA028,expert,generators,what_is_the_result,"What will the following code log to the console?
+
+function* gen() {
+  yield 1;
+  yield 2;
+}
+const it = gen();
+it.next();
+it.next();
+console.log(it.next().done);",true,,"After two next() calls the generator has yielded both values. The third next() call runs the code after the last yield, finds the function end, and returns {value: undefined, done: true}. Once a generator is done, all subsequent next() calls also return {done: true}.",,2026-05-15 16:57:21.711974+00
+JSA029,expert,symbols,what_is_the_result,"What will the following code log to the console?
+
+const s1 = Symbol.for('shared');
+const s2 = Symbol.for('shared');
+console.log(s1 === s2);",true,,"Symbol.for looks up a symbol in the global symbol registry by key. If a symbol with that key already exists, it returns the same one — unlike Symbol() which always creates a unique value. Both s1 and s2 refer to the same globally registered symbol, so they are strictly equal.",,2026-05-15 16:57:21.711974+00
+JSA030,expert,objects,what_is_the_result,"What will the following code log to the console?
+
+const obj = { a: 1, b: 2 };
+Object.freeze(obj);
+obj.c = 3;
+obj.a = 99;
+console.log(Object.keys(obj).length);
+console.log(obj.a);","2
+1",,"Object.freeze prevents adding, removing, or modifying properties. Assignments like obj.c=3 and obj.a=99 are silently ignored in non-strict mode (or throw in strict mode). The object stays with its original two keys and original value of a=1.",,2026-05-15 16:57:21.711974+00
+JSA031,expert,symbols,what_is_the_result,"What will the following code log to the console?
+
+const sym = Symbol('key');
+const obj = { [sym]: 'secret', name: 'visible' };
+console.log(Object.keys(obj).length);
+console.log(JSON.stringify(obj));","1
+{""name"":""visible""}",,"Symbol-keyed properties are non-enumerable and invisible to Object.keys(), for...in, and JSON.stringify(). Only 'name' appears in Object.keys, so length is 1. JSON.stringify omits the Symbol property entirely, producing {""name"":""visible""}.",,2026-05-15 16:57:21.711974+00
+JSA032,expert,iterators,what_is_the_result,"What will the following code log to the console?
+
+const arr = [1, 2, 3];
+const iter = arr[Symbol.iterator]();
+console.log(iter.next().value);
+console.log(iter.next().value);","1
+2",,"Arrays implement the iteration protocol via Symbol.iterator. Calling it returns a stateful iterator object. Each call to next() advances the iterator and returns the next element. The first call gives 1, the second gives 2.",,2026-05-15 16:57:21.711974+00
+JSA033,expert,operators,what_is_the_result,"What will the following code log to the console?
+
+console.log(0 || 'default');
+console.log(0 ?? 'default');
+console.log('' || 'fallback');
+console.log('' ?? 'fallback');","default
+0
+fallback
+",,"|| falls back for any falsy value (0, '', null, undefined, false, NaN). ?? (nullish coalescing) only falls back for null or undefined. 0 is falsy but not nullish, so 0 ?? 'default' keeps 0. An empty string is falsy but not nullish, so '' ?? 'fallback' keeps '' (empty output).",,2026-05-15 16:57:21.711974+00
+JSA034,expert,promises,what_is_the_result,"What will the following code log to the console?
+
+const p = Promise.resolve(42);
+console.log(p instanceof Promise);
+console.log(typeof p.then);","true
+function",,"Promise.resolve(42) creates a Promise that has already resolved. instanceof Promise confirms it is a Promise. .then is a method on Promise.prototype, so typeof p.then returns 'function'.",,2026-05-15 16:57:21.711974+00
+JSA035,expert,generators,what_is_the_result,"What will the following code log to the console?
+
+function* take(iterable, n) {
+  let count = 0;
+  for (const item of iterable) {
+    if (count++ >= n) break;
+    yield item;
+  }
+}
+console.log([...take([10, 20, 30, 40], 2)]);","[10,20]",,"take is a generator that yields at most n items from any iterable. count starts at 0; the post-increment means the break fires when count reaches 2. So items at count=0 (10) and count=1 (20) are yielded, then the loop breaks. Spread collects [10, 20].",,2026-05-15 16:57:21.711974+00
+JSA036,expert,weakmap,what_is_the_result,"What will the following code log to the console?
+
+const wm = new WeakMap();
+const obj = {};
+wm.set(obj, 'data');
+console.log(wm.has(obj));
+console.log(wm.size);","true
+undefined",,"WeakMap.has works correctly and returns true. However, WeakMap deliberately has no .size property — accessing it returns undefined. This is intentional: exposing size would require tracking all keys, preventing garbage collection of unreachable objects.",,2026-05-15 16:57:21.711974+00
+JSA037,expert,iterators,fill_in_the_blank,"Fill in the blank to make the object iterable:
+
+const obj = {
+  data: [1, 2, 3],
+  [___.iterator]() {
+    return this.data[Symbol.iterator]();
+  }
+};
+console.log([...obj]); // [1, 2, 3]","const obj = {
+  data: [1, 2, 3],
+  [Symbol.iterator]() {
+    return this.data[Symbol.iterator]();
+  }
+};
+console.log([...obj]); // [1, 2, 3]",,Symbol.iterator is a well-known symbol. Using it as a computed property key ([Symbol.iterator]) tells the JavaScript engine that this method implements the iterable protocol. The method delegates to the array's own iterator.,"[1,2,3]",2026-05-15 16:57:21.711974+00
+JSA038,expert,proxy,fill_in_the_blank,"Fill in the blank to intercept property assignments on the Proxy so non-numbers are rejected, then log the outcome:
+
+const validator = new Proxy({}, {
+  ___(target, prop, value) {
+    if (typeof value !== 'number') throw new TypeError('Only numbers');
+    target[prop] = value;
+    return true;
+  }
+});
+validator.x = 42;
+try {
+  validator.y = 'oops';
+  console.log('accepted', validator.x);
+} catch (e) {
+  console.log('rejected', validator.x);
+}","const validator = new Proxy({}, {
+  set(target, prop, value) {
+    if (typeof value !== 'number') throw new TypeError('Only numbers');
+    target[prop] = value;
+    return true;
+  }
+});
+validator.x = 42;
+try {
+  validator.y = 'oops';
+  console.log('accepted', validator.x);
+} catch (e) {
+  console.log('rejected', validator.x);
+}",,"The Proxy set trap intercepts all property assignments. Its parameters are target (the original object), prop (the property name), and value (the value being assigned). Returning true signals that the assignment succeeded; returning false (or not returning) throws a TypeError in strict mode.",rejected 42,2026-05-15 16:57:21.711974+00
+JSA039,expert,promises,fill_in_the_blank,"Fill in the blank to wait for all Promises regardless of whether they reject:
+
+Promise.___([Promise.resolve(1), Promise.reject(2)])
+  .then(results => console.log(results.length)); // 2","Promise.allSettled([Promise.resolve(1), Promise.reject(2)])
+  .then(results => console.log(results.length)); // 2",,Promise.allSettled waits for all Promises to settle (resolve or reject) and always fulfils with a results array of the same length. Promise.all would reject immediately on the first rejection and would not reach the .then.,2,2026-05-15 16:57:21.711974+00
+JSA040,expert,generators,fill_in_the_blank,"Fill in the blank to delegate to an inner iterable inside a generator:
+
+function* concat(...arrays) {
+  for (const arr of arrays) {
+    ___ arr;
+  }
+}
+console.log([...concat([1,2],[3,4])]); // [1,2,3,4]","function* concat(...arrays) {
+  for (const arr of arrays) {
+    yield* arr;
+  }
+}
+console.log([...concat([1,2],[3,4])]); // [1,2,3,4]",,"yield* delegates iteration to another iterable, forwarding each of its values as if they were yielded directly. It is the generator equivalent of a nested for...of loop that yields each element.","[1,2,3,4]",2026-05-15 16:57:21.711974+00
+JSA041,expert,symbols,fill_in_the_blank,"Fill in the blank to implement custom type coercion:
+
+class Money {
+  constructor(amount) { this.amount = amount; }
+  [___.toPrimitive](hint) {
+    return hint === 'string' ? `$${this.amount}` : this.amount;
+  }
+}
+const m = new Money(50);
+console.log(+m); // 50","class Money {
+  constructor(amount) { this.amount = amount; }
+  [Symbol.toPrimitive](hint) {
+    return hint === 'string' ? `$${this.amount}` : this.amount;
+  }
+}
+const m = new Money(50);
+console.log(+m); // 50",,"Symbol.toPrimitive is the well-known symbol that overrides the default coercion logic. When JavaScript needs to convert the object to a primitive, it calls this method with a hint ('number', 'string', or 'default'). The unary + operator provides a 'number' hint.",50,2026-05-15 16:57:21.711974+00
+JSA042,expert,weakmap,fill_in_the_blank,"Fill in the blank to cache computed results without preventing garbage collection, then log a result:
+
+const cache = new ___();
+function process(obj) {
+  if (cache.has(obj)) return cache.get(obj);
+  const result = obj.value * 2;
+  cache.set(obj, result);
+  return result;
+}
+const item = { value: 21 };
+console.log(process(item)); // 42","const cache = new WeakMap();
+function process(obj) {
+  if (cache.has(obj)) return cache.get(obj);
+  const result = obj.value * 2;
+  cache.set(obj, result);
+  return result;
+}
+const item = { value: 21 };
+console.log(process(item)); // 42",,"WeakMap stores entries with weak references to object keys. When an object key becomes unreachable, its WeakMap entry is eligible for garbage collection — unlike a regular Map which would keep the object alive. This makes WeakMap ideal for caches keyed on objects.",42,2026-05-15 16:57:21.711974+00
+JSA043,expert,tagged-templates,fill_in_the_blank,"Fill in the blank to return the tag function's static string parts joined by '|':
+
+function tag(strings, ...values) {
+  return ___.join('|');
+}
+console.log(tag`a${1}b${2}c`);","function tag(strings, ...values) {
+  return strings.join('|');
+}
+console.log(tag`a${1}b${2}c`);",,"A tag function receives the template's static string segments as its first argument (conventionally named strings or strs), followed by the interpolated values as rest parameters. strings.length is always values.length + 1.",a|b|c,2026-05-15 16:57:21.711974+00
+JSA044,expert,reflect,fill_in_the_blank,"Fill in the blank to get all own property keys, including Symbols:
+
+const sym = Symbol('s');
+const obj = { a: 1, [sym]: 2 };
+const allKeys = ___.ownKeys(obj);
+console.log(allKeys.length); // 2","const sym = Symbol('s');
+const obj = { a: 1, [sym]: 2 };
+const allKeys = Reflect.ownKeys(obj);
+console.log(allKeys.length); // 2",,"Reflect.ownKeys returns all own property keys including Symbols and non-enumerable properties. Object.keys returns only own enumerable string keys. For obj with one string key and one Symbol key, Reflect.ownKeys returns both.",2,2026-05-15 16:57:21.711974+00
+JSA045,expert,event-loop,fill_in_the_blank,"Fill in the blank to schedule a microtask that runs after synchronous code but before the next macrotask:
+
+console.log('start');
+___(() => console.log('microtask'));
+console.log('end');
+// Logs: start, end, microtask","console.log('start');
+queueMicrotask(() => console.log('microtask'));
+console.log('end');
+// Logs: start, end, microtask",,"queueMicrotask schedules a callback in the microtask queue — the same queue used by Promise.then. Microtasks run after the current synchronous script completes but before the browser renders or processes the next macrotask (setTimeout, setInterval).","start
+end
+microtask",2026-05-15 16:57:21.711974+00
+JSA046,expert,promises,fill_in_the_blank,"Fill in the blank to resolve with the first fulfilling Promise (ignoring rejections):
+
+Promise.___(
+  [Promise.reject('a'), Promise.resolve('b'), Promise.reject('c')]
+).then(console.log); // 'b'","Promise.any(
+  [Promise.reject('a'), Promise.resolve('b'), Promise.reject('c')]
+).then(console.log); // 'b'",,"Promise.any resolves as soon as any Promise in the array fulfils. It ignores rejections unless all Promises reject, in which case it rejects with an AggregateError. This is the opposite of Promise.race, which settles on the first outcome regardless of whether it is a resolve or reject.",b,2026-05-15 16:57:21.711974+00
+JSA047,expert,deep-copy,fill_in_the_blank,"Fill in the blank to create a deep clone that handles circular references (unlike JSON.parse/JSON.stringify):
+
+const original = { a: 1, nested: { b: 2 } };
+const clone = ___(original);
+clone.nested.b = 99;
+console.log(original.nested.b); // 2","const original = { a: 1, nested: { b: 2 } };
+const clone = structuredClone(original);
+clone.nested.b = 99;
+console.log(original.nested.b); // 2",,"structuredClone is a built-in function (available in Node.js 17+ and modern browsers) that deep-clones objects using the Structured Clone Algorithm. Unlike JSON, it handles circular references, Dates, Maps, Sets, and more — but not functions or Symbols.",2,2026-05-15 16:57:21.711974+00
+JSA048,expert,generators,fill_in_the_blank,"Fill in the blank to yield values from an async generator, then log the collected values:
+
+async function* asyncRange(start, end) {
+  for (let i = start; i <= end; i++) {
+    ___ i;
+  }
+}
+(async () => {
+  const out = [];
+  for await (const n of asyncRange(1, 3)) out.push(n);
+  console.log(out.join(','));
+})();","async function* asyncRange(start, end) {
+  for (let i = start; i <= end; i++) {
+    yield i;
+  }
+}
+(async () => {
+  const out = [];
+  for await (const n of asyncRange(1, 3)) out.push(n);
+  console.log(out.join(','));
+})();",,"An async generator (async function*) combines async functions and generators. Inside it, both yield and await can be used. yield pauses the generator and emits a value; the consumer uses for await...of to iterate over the emitted values.","1,2,3",2026-05-15 16:57:21.711974+00
+JSA049,expert,async-await,spot_the_bug,"Find and fix the bug. The async function's rejection is never handled, causing an unhandled Promise rejection. Attach a handler that logs the error message:
+
+async function riskyOp() {
+  throw new Error('failed');
+}
+riskyOp();","async function riskyOp() {
+  throw new Error('failed');
+}
+riskyOp().catch(e => console.log('caught:', e.message));",,"Async functions return a Promise. If that Promise rejects and no .catch() or try/catch (via await) handles it, the process emits an unhandledRejection warning (or crash in some environments). Always attach .catch() or await inside a try/catch.",caught: failed,2026-05-15 16:57:21.711974+00
+JSA050,expert,async-await,spot_the_bug,"Find and fix the bug. processAll should log items in order, but with forEach the awaits do not run sequentially, so items finish out of order:
+
+function doWork(item) {
+  return new Promise(res => setTimeout(res, (4 - item) * 10));
+}
+async function processAll(items) {
+  items.forEach(async item => {
+    await doWork(item);
+    console.log(item, 'done');
+  });
+}
+processAll([1, 2, 3]);","function doWork(item) {
+  return new Promise(res => setTimeout(res, (4 - item) * 10));
+}
+async function processAll(items) {
+  for (const item of items) {
+    await doWork(item);
+    console.log(item, 'done');
+  }
+}
+processAll([1, 2, 3]);",,forEach does not await async callbacks — it fires them all simultaneously and ignores the returned Promises. Items run concurrently in an undefined order. Replacing forEach with for...of allows each await to pause the loop until the current item finishes before moving to the next.,"1 done
+2 done
+3 done",2026-05-15 16:57:21.711974+00
+JSA051,expert,regex,spot_the_bug,"Find and fix the bug. Both test calls should return true, but the second returns false:
+
+const re = /cat/g;
+console.log(re.test('I have a cat')); // true
+console.log(re.test('My cat is here')); // false — should be true","const re = /cat/;
+console.log(re.test('I have a cat'));
+console.log(re.test('My cat is here'));",,"A regex with the g (global) flag keeps stateful lastIndex between calls on the same regex object. After the first successful test, lastIndex is set past the match. The second test starts from that position, finds nothing, and returns false while also resetting lastIndex to 0. Removing the g flag or resetting lastIndex manually fixes this.","true
+true",2026-05-15 16:57:21.711974+00
+JSA052,expert,proxy,spot_the_bug,"Find and fix the bug. The Proxy's get trap causes infinite recursion:
+
+const obj = new Proxy({}, {
+  get(target, prop) {
+    console.log(`Getting ${prop}`);
+    return obj[prop];
+  }
+});
+obj.name;","const obj = new Proxy({}, {
+  get(target, prop) {
+    console.log(`Getting ${prop}`);
+    return target[prop];
+  }
+});
+obj.name;",,"obj[prop] inside the get trap accesses obj, which is the Proxy itself — triggering the trap again recursively until the stack overflows. The fix is to read from target (the underlying plain object), not from the Proxy. The target parameter is always the unwrapped object.",Getting name,2026-05-15 16:57:21.711974+00
+JSA053,expert,weakmap,spot_the_bug,"Find and fix the bug. WeakMap keys must be objects, but a string is used:
+
+const wm = new WeakMap();
+wm.set('key', 'value');
+console.log(wm.get('key'));","const wm = new WeakMap();
+const key = {};
+wm.set(key, 'value');
+console.log(wm.get(key));",,WeakMap only accepts objects (and registered symbols in some environments) as keys — primitives like strings throw a TypeError. This restriction exists because WeakMap relies on object identity and garbage-collection semantics that primitives do not have.,value,2026-05-15 16:57:21.711974+00
+JSA054,expert,memoization,spot_the_bug,"Find and fix the bug. The memoized function gives wrong results when called with the same first argument but different second argument:
+
+function memoize(fn) {
+  const cache = new Map();
+  return function(...args) {
+    if (cache.has(args[0])) return cache.get(args[0]);
+    const result = fn(...args);
+    cache.set(args[0], result);
+    return result;
+  };
+}
+const add = memoize((a, b) => a + b);
+console.log(add(1, 2)); // 3
+console.log(add(1, 3)); // Should be 4, returns 3","function memoize(fn) {
+  const cache = new Map();
+  return function(...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) return cache.get(key);
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  };
+}
+const add = memoize((a, b) => a + b);
+console.log(add(1, 2)); // 3
+console.log(add(1, 3)); // 4",,"Keying the cache only on args[0] ignores the remaining arguments. add(1,2) and add(1,3) both hash to key 1 and return the first cached result. Serialising the full args array as a JSON string produces a unique cache key for every distinct combination of arguments.","3
+4",2026-05-15 16:57:21.711974+00
+JSA055,expert,classes,spot_the_bug,"Find and fix the bug. DataLoader uses await in the constructor, which is a SyntaxError. Move the async work into an async init() method and log the loaded data:
+
+class DataLoader {
+  constructor(url) {
+    this.data = await Promise.resolve('data from ' + url);
+  }
+}
+new DataLoader('/api');","class DataLoader {
+  constructor(url) {
+    this.url = url;
+  }
+  async init() {
+    this.data = await Promise.resolve('data from ' + this.url);
+    return this;
+  }
+}
+new DataLoader('/api').init().then(loader => console.log(loader.data));",,"Constructors are synchronous — they cannot use await. A common pattern is to separate async initialisation into an init() method that returns the instance, allowing the caller to await it. Alternatively, use a static async factory method.",data from /api,2026-05-15 16:57:21.711974+00
+JSA056,expert,promises,spot_the_bug,"Find and fix the bug. getAllResults should report the outcome of every task including failures, but Promise.all rejects as soon as one task fails:
+
+function task(id) {
+  return id === 2 ? Promise.reject('fail' + id) : Promise.resolve('ok' + id);
+}
+async function getAllResults(ids) {
+  return await Promise.all(ids.map(task));
+}
+getAllResults([1, 2, 3]).then(r => console.log(r.map(x => x.status).join(',')));","function task(id) {
+  return id === 2 ? Promise.reject('fail' + id) : Promise.resolve('ok' + id);
+}
+async function getAllResults(ids) {
+  return await Promise.allSettled(ids.map(task));
+}
+getAllResults([1, 2, 3]).then(r => console.log(r.map(x => x.status).join(',')));",,"Promise.all rejects immediately when any Promise rejects, discarding results from the others. Promise.allSettled waits for every Promise to settle and returns a result object for each one — fulfilled or rejected — so no results are lost.","fulfilled,rejected,fulfilled",2026-05-15 16:57:21.711974+00
+JSA057,expert,generators,spot_the_bug,"Find and fix the bug. The second loop should restart from the beginning, but it logs nothing:
+
+function* counter() {
+  let i = 0;
+  while (true) yield i++;
+}
+const gen = counter();
+for (const n of gen) {
+  if (n >= 3) break;
+  console.log(n);
+}
+// Second iteration — expected: 0, 1, 2 — actual: nothing
+for (const n of gen) {
+  if (n >= 3) break;
+  console.log(n);
+}","function* counter() {
+  let i = 0;
+  while (true) yield i++;
+}
+for (const n of counter()) {
+  if (n >= 3) break;
+  console.log(n);
+}
+for (const n of counter()) {
+  if (n >= 3) break;
+  console.log(n);
+}",,"A generator instance is exhausted after use — break exits the loop but leaves the generator in a 'done' state after internal clean-up. To restart, call the generator function again to get a fresh instance. Calling counter() each time creates a new independent iterator.","0
+1
+2
+0
+1
+2",2026-05-15 16:57:21.711974+00
+JSA058,expert,tagged-templates,spot_the_bug,"Find and fix the bug. The tag function should produce 'Hello World!' but produces 'Hello World':
+
+function tag(strings, ...values) {
+  let result = '';
+  values.forEach((val, i) => {
+    result += strings[i] + val;
+  });
+  return result;
+}
+console.log(tag`Hello ${'World'}!`);","function tag(strings, ...values) {
+  let result = '';
+  values.forEach((val, i) => {
+    result += strings[i] + val;
+  });
+  result += strings[strings.length - 1];
+  return result;
+}
+console.log(tag`Hello ${'World'}!`);",,"strings always has one more element than values. For the template `Hello ${'World'}!`, strings is ['Hello ', '!'] and values is ['World']. The loop processes strings[0]+'World' = 'Hello World' but misses strings[1] = '!'. Adding the last string segment after the loop completes the output.",Hello World!,2026-05-15 16:57:21.711974+00
+JSA059,expert,proxy,spot_the_bug,"Find and fix the bug. In strict mode the set trap throws a TypeError because it does not signal success by returning true:
+
+'use strict';
+const obj = new Proxy({}, {
+  set(target, prop, value) {
+    target[prop] = value;
+  }
+});
+obj.name = 'Alice';
+console.log(obj.name);","'use strict';
+const obj = new Proxy({}, {
+  set(target, prop, value) {
+    target[prop] = value;
+    return true;
+  }
+});
+obj.name = 'Alice';
+console.log(obj.name);",,"The Proxy set trap must return true to indicate that the assignment was handled successfully. If it returns a falsy value (including undefined from a missing return), JavaScript throws a TypeError in strict mode. Always return true after performing the assignment in a set trap.",Alice,2026-05-15 16:57:21.711974+00
+JSA060,expert,closures,spot_the_bug,"Find and fix the bug. Each button handler should log its own index, but all log 3:
+
+const handlers = [];
+for (var i = 0; i < 3; i++) {
+  handlers.push(function() {
+    console.log('Button', i);
+  });
+}
+handlers[0](); // Should log 'Button 0', logs 'Button 3'
+handlers[1](); // Should log 'Button 1', logs 'Button 3'
+handlers[2](); // Should log 'Button 2', logs 'Button 3'","const handlers = [];
+for (let i = 0; i < 3; i++) {
+  handlers.push(function() {
+    console.log('Button', i);
+  });
+}
+handlers[0]();
+handlers[1]();
+handlers[2]();",,"var is function-scoped so all three closures share the same i. By the time any handler is called, the loop has finished and i is 3. Using let creates a new block-scoped i for each iteration, giving each closure its own captured copy. The IIFE alternative achieves the same effect by passing i as an argument.","Button 0
+Button 1
+Button 2",2026-05-15 16:57:21.711974+00
+JSB001,simple,variables,write_the_code,"Write code that declares two variables a = 10 and b = 20, swaps their values, and logs both on separate lines.
+
+// Expected output:
+// 20
+// 10","let a = 10, b = 20;
+[a, b] = [b, a];
+console.log(a);
+console.log(b);","let a = 10;
+let b = 20;
+const temp = a;
+a = b;
+b = temp;
+console.log(a);
+console.log(b);","Destructuring assignment [a, b] = [b, a] swaps values in one line without a temporary variable. The traditional approach uses a temp variable to hold one value during the swap.",,2026-05-15 16:48:16.058205+00
+JSB002,simple,strings,write_the_code,"Write a function called capitalize that takes a string and returns it with the first letter uppercased and the rest lowercased.
+
+capitalize('hELLO') // 'Hello'","function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+}","function capitalize(str) {
+  return str[0].toUpperCase() + str.slice(1).toLowerCase();
+}","charAt(0) retrieves the first character, toUpperCase() uppercases it, and slice(1) gets everything from index 1 onward. toLowerCase() ensures the remaining characters are lowercase.",,2026-05-15 16:48:16.058205+00
+JSB003,simple,conditionals,write_the_code,"Write a function called classify that takes a number n and returns 'positive' if n > 0, 'negative' if n < 0, and 'zero' if n is exactly 0.","function classify(n) {
+  if (n > 0) return ""positive"";
+  if (n < 0) return ""negative"";
+  return ""zero"";
+}","function classify(n) {
+  if (n > 0) {
+    return ""positive"";
+  } else if (n < 0) {
+    return ""negative"";
+  } else {
+    return ""zero"";
+  }
+}","Early returns exit the function as soon as a condition is met, so no else is needed. If neither positive nor negative, the only remaining case is zero.",,2026-05-15 16:48:16.058205+00
+JSB004,simple,loops,write_the_code,"Write a function called sumArray that takes an array of numbers and returns the sum of all elements using a for...of loop.
+
+sumArray([1, 2, 3, 4]) // 10","function sumArray(arr) {
+  let sum = 0;
+  for (const num of arr) {
+    sum += num;
+  }
+  return sum;
+}",,"for...of iterates directly over array values (not indices). Each iteration binds the next element to num, so you can accumulate the sum without managing an index variable.",,2026-05-15 16:48:16.058205+00
+JSB005,simple,objects,write_the_code,"Write a function called createPerson that takes a name and age and returns an object with those as properties.
+
+createPerson('Alice', 25) // { name: 'Alice', age: 25 }","function createPerson(name, age) {
+  return { name, age };
+}","function createPerson(name, age) {
+  return { name: name, age: age };
+}",ES6 shorthand property syntax allows { name } instead of { name: name } when the property key and variable name are the same. Both forms produce an identical object.,,2026-05-15 16:48:16.058205+00
+JSB006,simple,functions,write_the_code,"Write a function called max that takes two numbers a and b and returns the larger one.
+
+max(3, 7)  // 7
+max(10, 4) // 10","function max(a, b) {
+  return a > b ? a : b;
+}","function max(a, b) {
+  if (a > b) return a;
+  return b;
+}","The ternary operator is a concise way to return one of two values. If a > b is true, a is returned; otherwise b is returned. A standard if/else works equally well.",,2026-05-15 16:48:16.058205+00
+JSB007,simple,functions,write_the_code,"Write a function called average that takes an array of numbers and returns their arithmetic mean.
+
+average([2, 4, 6]) // 4","function average(nums) {
+  let sum = 0;
+  for (const n of nums) {
+    sum += n;
+  }
+  return sum / nums.length;
+}","function average(nums) {
+  return nums.reduce((acc, n) => acc + n, 0) / nums.length;
+}",Sum all elements then divide by the count. The loop accumulates the total; dividing by nums.length gives the arithmetic mean. reduce() is an equivalent one-liner.,,2026-05-15 16:48:16.058205+00
+JSB008,simple,arrays,write_the_code,"Write a function called getEvens that takes an array of numbers and returns a new array containing only the even numbers.
+
+getEvens([1, 2, 3, 4, 5, 6]) // [2, 4, 6]","function getEvens(nums) {
+  return nums.filter(n => n % 2 === 0);
+}","function getEvens(nums) {
+  const result = [];
+  for (const n of nums) {
+    if (n % 2 === 0) result.push(n);
+  }
+  return result;
+}",filter() returns a new array with only the elements for which the callback returns true. n % 2 === 0 is true for even numbers. The loop approach achieves the same by checking and pushing manually.,,2026-05-15 16:48:16.058205+00
+JSB009,simple,variables,output_prediction,"What will the following code log to the console?
+
+var message = ""hello"";
+var message = ""world"";
+console.log(message);",world,,"Unlike let and const, var allows you to declare the same variable multiple times without an error. The last assignment wins, so 'world' is logged.",,2026-05-15 16:48:16.058205+00
+JSB010,simple,operators,output_prediction,"What will the following code log to the console?
+
+let a = 5;
+console.log(a++);
+console.log(a);","5
+6",,"a++ is the post-increment operator. It returns the current value first (5), then increments the variable. The second console.log shows the already-incremented value (6).",,2026-05-15 16:48:16.058205+00
+JSB011,simple,conditionals,output_prediction,"What will the following code log to the console?
+
+let temperature = 15;
+if (temperature > 30) {
+  console.log(""hot"");
+} else if (temperature > 20) {
+  console.log(""warm"");
+} else {
+  console.log(""cool"");
+}",cool,,"JavaScript evaluates conditions top to bottom and stops at the first true branch. 15 is neither > 30 nor > 20, so the else block runs and logs 'cool'.",,2026-05-15 16:48:16.058205+00
+JSB012,simple,conditionals,output_prediction,"What will the following code log to the console?
+
+let day = ""Monday"";
+switch (day) {
+  case ""Monday"":
+    console.log(""Start of the week"");
+    break;
+  case ""Friday"":
+    console.log(""End of the week"");
+    break;
+  default:
+    console.log(""Midweek"");
+}",Start of the week,,"switch compares the value against each case using strict equality. 'Monday' matches the first case, so 'Start of the week' is logged. The break statement exits the switch and prevents fall-through.",,2026-05-15 16:48:16.058205+00
+JSB013,simple,loops,output_prediction,"What will the following code log to the console?
+
+for (let i = 1; i <= 4; i++) {
+  console.log(i * 2);
+}","2
+4
+6
+8",,"The loop runs with i = 1, 2, 3, 4 (stops when i > 4). Each iteration logs i * 2, producing 2, 4, 6, 8 on separate lines.",,2026-05-15 16:48:16.058205+00
+JSB014,simple,loops,output_prediction,"What will the following code log to the console?
+
+let count = 5;
+while (count > 0) {
+  console.log(count);
+  count -= 2;
+}","5
+3
+1",,"Starting at 5, the loop decrements count by 2 each iteration: 5 → 3 → 1 → -1. When count becomes -1 the condition count > 0 is false, so the loop stops after printing 5, 3, 1.",,2026-05-15 16:48:16.058205+00
+JSB015,simple,functions,output_prediction,"What will the following code log to the console?
+
+function add(a, b = 5) {
+  return a + b;
+}
+console.log(add(3));
+console.log(add(3, 10));","8
+13",,"Default parameters are used when no argument is provided for that position. add(3) uses b = 5 (the default), returning 8. add(3, 10) uses the explicit b = 10, returning 13.",,2026-05-15 16:48:16.058205+00
+JSB016,simple,objects,output_prediction,"What will the following code log to the console?
+
+const person = { name: ""Alice"", age: 25 };
+console.log(person.name);
+console.log(person[""age""]);","Alice
+25",,Object properties can be accessed with dot notation (person.name) or bracket notation (person['age']). Both return the same value. Bracket notation is useful when the key is stored in a variable or contains special characters.,,2026-05-15 16:48:16.058205+00
+JSB017,simple,datatypes,what_is_the_result,"What will the following code log to the console?
+
+console.log(typeof ""JavaScript"");
+console.log(typeof 2024);","string
+number",,typeof returns a lowercase string indicating the data type of its operand. Strings return 'string' and numbers (integer or float) return 'number'.,,2026-05-15 16:48:16.058205+00
+JSB018,simple,datatypes,what_is_the_result,"What will the following code log to the console?
+
+console.log(typeof null);",object,,"typeof null returning 'object' is a historical bug in JavaScript that was never fixed for backward compatibility. null represents the intentional absence of a value, not an actual object.",,2026-05-15 16:48:16.058205+00
+JSB019,simple,coercion,what_is_the_result,"What will the following code log to the console?
+
+console.log(""3"" + 4);",34,,"When the + operator sees a string on either side, it converts the other operand to a string and concatenates. '3' + 4 becomes '3' + '4' = '34', not 7.",,2026-05-15 16:48:16.058205+00
+JSB020,simple,coercion,what_is_the_result,"What will the following code log to the console?
+
+console.log(5 == ""5"");",true,,"== performs loose equality with type coercion. It converts '5' (string) to 5 (number) before comparing, so 5 == 5 evaluates to true. Use === to skip this implicit conversion.",,2026-05-15 16:48:16.058205+00
+JSB021,simple,coercion,what_is_the_result,"What will the following code log to the console?
+
+console.log(5 === ""5"");",false,,"=== is strict equality — it checks both value and type without any coercion. 5 is a number and '5' is a string, so they are not strictly equal.",,2026-05-15 16:48:16.058205+00
+JSB022,simple,operators,what_is_the_result,"What will the following code log to the console?
+
+console.log(17 % 5);",2,,"The % operator returns the remainder after integer division. 17 divided by 5 is 3 with remainder 2 (because 5 × 3 = 15, and 17 − 15 = 2).",,2026-05-15 16:48:16.058205+00
+JSB023,simple,operators,what_is_the_result,"What will the following code log to the console?
+
+console.log(2 ** 10);",1024,,The ** operator is the exponentiation operator introduced in ES2016. 2 to the power of 10 is 1024.,,2026-05-15 16:48:16.058205+00
+JSB024,simple,strings,what_is_the_result,"What will the following code log to the console?
+
+let language = ""JavaScript"";
+console.log(language.length);",10,,The length property returns the number of characters in a string. 'JavaScript' has 10 characters: J-a-v-a-S-c-r-i-p-t.,,2026-05-15 16:48:16.058205+00
+JSB025,simple,variables,fill_in_the_blank,"Fill in the blank to declare a constant variable:
+
+___ MAX_RETRIES = 3;
+console.log(MAX_RETRIES); // 3","const MAX_RETRIES = 3;
+console.log(MAX_RETRIES); // 3",,const declares a block-scoped variable that cannot be reassigned after its initial value is set. It is preferred when the value should never change.,3,2026-05-15 16:48:16.058205+00
+JSB026,simple,datatypes,fill_in_the_blank,"Fill in the blank to check if a variable holds a string:
+
+let value = ""hello"";
+console.log(___ value === ""string""); // true","let value = ""hello"";
+console.log(typeof value === ""string""); // true",,typeof is a unary operator that returns a string representing the type of the operand. typeof value === 'string' evaluates to true because value contains the string 'hello'.,true,2026-05-15 16:48:16.058205+00
+JSB027,simple,operators,fill_in_the_blank,"Fill in the blank to complete the ternary expression:
+
+let age = 20;
+let status = age >= 18 ___ ""adult"" : ""minor"";
+console.log(status); // adult","let age = 20;
+let status = age >= 18 ? ""adult"" : ""minor"";
+console.log(status); // adult",,? is the ternary operator: condition ? valueIfTrue : valueIfFalse. It returns one of two values based on a condition and is a concise alternative to if/else.,adult,2026-05-15 16:48:16.058205+00
+JSB028,simple,strings,fill_in_the_blank,"Fill in the blank to extract 'World' from the string:
+
+let sentence = ""Hello, World!"";
+console.log(sentence.___(7, 12)); // World","let sentence = ""Hello, World!"";
+console.log(sentence.slice(7, 12)); // World",,"slice(start, end) extracts characters from index start up to (but not including) index end. 'Hello, ' occupies indices 0–6, so 'World' starts at index 7 and ends at 11.",World,2026-05-15 16:48:16.058205+00
+JSB029,simple,strings,fill_in_the_blank,"Fill in the blank to split the string into an array:
+
+let csv = ""apple,banana,cherry"";
+let fruits = csv.___("","");
+console.log(fruits[1]); // banana","let csv = ""apple,banana,cherry"";
+let fruits = csv.split("","");
+console.log(fruits[1]); // banana",,"split(separator) divides a string into an array of substrings at each separator. 'apple,banana,cherry'.split(',') produces ['apple', 'banana', 'cherry'], and index 1 is 'banana'.",banana,2026-05-15 16:48:16.058205+00
+JSB030,simple,functions,fill_in_the_blank,"Fill in the blank so the function returns the cube of n:
+
+function cube(n) {
+  ___ n * n * n;
+}
+console.log(cube(3)); // 27","function cube(n) {
+  return n * n * n;
+}
+console.log(cube(3)); // 27",,"Without a return statement, a function implicitly returns undefined. return n * n * n computes 3 × 3 × 3 = 27 and sends that value back to the caller.",27,2026-05-15 16:48:16.058205+00
+JSB031,simple,functions,fill_in_the_blank,"Fill in the blank to complete the arrow function:
+
+const square = n ___ n * n;
+console.log(square(4)); // 16","const square = n => n * n;
+console.log(square(4)); // 16",,"=> defines an arrow function. For a single-expression body, curly braces and the return keyword are omitted — the expression is implicitly returned. n => n * n squares its argument.",16,2026-05-15 16:48:16.058205+00
+JSB032,simple,arrays,fill_in_the_blank,"Fill in the blank to double every element in the array:
+
+const nums = [1, 2, 3, 4];
+const doubled = nums.___(n => n * 2);
+console.log(doubled[2]); // 6","const nums = [1, 2, 3, 4];
+const doubled = nums.map(n => n * 2);
+console.log(doubled[2]); // 6",,"map() creates a new array by applying a function to each element of the original. n => n * 2 doubles every number, so [1, 2, 3, 4] becomes [2, 4, 6, 8]. Index 2 is 6.",6,2026-05-15 16:48:16.058205+00
+JSB033,simple,variables,spot_the_bug,"Find and fix the bug. The code should log 10:
+
+const score = 0;
+score = score + 10;
+console.log(score);","let score = 0;
+score = score + 10;
+console.log(score);",,const variables cannot be reassigned after initialization — doing so throws a TypeError. Changing const to let allows the variable to be updated.,10,2026-05-15 16:48:16.058205+00
+JSB034,simple,conditionals,spot_the_bug,"Find and fix the bug. The code should log 'fizz' because 15 is divisible by 3:
+
+let n = 15;
+if (n % 3 = 0) {
+  console.log(""fizz"");
+}","let n = 15;
+if (n % 3 === 0) {
+  console.log(""fizz"");
+}",,"= is the assignment operator, not a comparison. Inside an if condition, = causes a syntax error (in strict mode) or unexpected behaviour. Use === or == to compare values.",fizz,2026-05-15 16:48:16.058205+00
+JSB035,simple,loops,spot_the_bug,"Find and fix the bug. The code should log numbers 1 to 5 but runs forever:
+
+for (let i = 1; i <= 5; i--) {
+  console.log(i);
+}","for (let i = 1; i <= 5; i++) {
+  console.log(i);
+}",,"i-- decrements i on every iteration, moving it further from the stopping condition (i <= 5) and creating an infinite loop. Changing i-- to i++ increments toward 5 and the loop terminates correctly.","1
+2
+3
+4
+5",2026-05-15 16:48:16.058205+00
+JSB036,simple,arrays,spot_the_bug,"Find and fix the bug. The code should produce [2, 4, 6], but doesn't:
+
+const nums = [1, 2, 3];
+const doubled = nums.filter(n => n * 2);
+console.log(doubled);","const nums = [1, 2, 3];
+const doubled = nums.map(n => n * 2);
+console.log(doubled);",,"filter() keeps elements that pass a truthy test — it does not transform values. Since any non-zero number is truthy, filter returns the original elements unchanged. Use map() to transform each element.","[2,4,6]",2026-05-15 16:48:16.058205+00
+JSB037,simple,strings,spot_the_bug,"Find and fix the bug. The code should log 'HELLO' but logs 'hello':
+
+let greeting = ""hello"";
+greeting.toUpperCase();
+console.log(greeting);","let greeting = ""hello"";
+greeting = greeting.toUpperCase();
+console.log(greeting);",,String methods in JavaScript do not mutate the original string — they return a new one. The result of toUpperCase() must be assigned back to greeting to use the uppercase version.,HELLO,2026-05-15 16:48:16.058205+00
+JSB038,simple,arrays,spot_the_bug,"Find and fix the bug. The code should log true when 3 is in the array:
+
+const nums = [1, 2, 3, 4, 5];
+console.log(nums.contains(3));","const nums = [1, 2, 3, 4, 5];
+console.log(nums.includes(3));",,"JavaScript arrays do not have a contains() method — that is common in other languages like Java. The correct method is includes(), which returns true if the element is present in the array.",true,2026-05-15 16:48:16.058205+00
+JSB039,simple,loops,spot_the_bug,"Find and fix the bug. The code should log numbers 1 to 5 but only logs 1 to 4:
+
+for (let i = 1; i < 5; i++) {
+  console.log(i);
+}","for (let i = 1; i <= 5; i++) {
+  console.log(i);
+}",,"i < 5 stops before reaching 5 — it runs for i = 1, 2, 3, 4 only. Changing to i <= 5 includes 5, so all numbers from 1 to 5 are logged.","1
+2
+3
+4
+5",2026-05-15 16:48:16.058205+00
+JSB040,simple,objects,spot_the_bug,"Find and fix the bug. The code should log 'Alice':
+
+const user = { info: { name: ""Alice"" } };
+console.log(user.name);","const user = { info: { name: ""Alice"" } };
+console.log(user.info.name);",,"name is nested inside the info property, not directly on user. user.name is undefined because there is no name key at the top level. The correct path is user.info.name.",Alice,2026-05-15 16:48:16.058205+00
+JSH001,hard,closures,write_the_code,"Write a function makeCounter that returns an object with three methods: increment(), decrement(), and getCount(). Each call to increment increases a private count by 1, decrement decreases it, and getCount returns the current value. The count starts at 0.
+
+const c = makeCounter();
+c.increment();
+c.increment();
+c.decrement();
+console.log(c.getCount()); // 1","function makeCounter() {
+  let count = 0;
+  return {
+    increment() { count++; },
+    decrement() { count--; },
+    getCount() { return count; }
+  };
+}",,"The returned object's methods close over the count variable declared in makeCounter's scope. Each call to increment or decrement modifies the same count, and getCount reads it. The variable is private because nothing outside the returned object can access it directly.",,2026-05-15 16:54:22.904349+00
+JSH002,hard,this,write_the_code,"Write a function greet that takes no arguments and returns 'Hello, ' + this.name. Then write a line that calls greet using .call() with the object { name: 'Alice' } and logs the result.
+
+// Expected output:
+// Hello, Alice","function greet() {
+  return 'Hello, ' + this.name;
+}
+console.log(greet.call({ name: 'Alice' }));","function greet() {
+  return `Hello, ${this.name}`;
+}
+console.log(greet.call({ name: 'Alice' }));","Function.prototype.call invokes a function immediately, passing an explicit value for this as the first argument. Inside greet, this becomes { name: 'Alice' }, so this.name is 'Alice'.",,2026-05-15 16:54:22.904349+00
+JSH003,hard,promises,write_the_code,"Write a function delay(ms) that returns a Promise which resolves after ms milliseconds.
+
+delay(1000).then(() => console.log('done'));","function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}",,new Promise takes an executor function with resolve and reject callbacks. Passing resolve directly to setTimeout schedules the Promise to resolve after ms milliseconds. The Promise has no value — it is used purely for its timing side-effect.,,2026-05-15 16:54:22.904349+00
+JSH004,hard,async-await,write_the_code,"Write an async function getSquare(n) that awaits a Promise which resolves to n * n, then returns that value.
+
+getSquare(5).then(console.log); // 25","async function getSquare(n) {
+  const result = await Promise.resolve(n * n);
+  return result;
+}","async function getSquare(n) {
+  return n * n;
+}","An async function always returns a Promise. The await keyword unwraps a Promise's resolved value. The alternative shows that async functions automatically wrap return values in a resolved Promise, so awaiting an intermediate Promise is optional here.",,2026-05-15 16:54:22.904349+00
+JSH005,hard,classes,write_the_code,"Write a class Rectangle with a constructor(width, height), an area() method that returns the area, and a perimeter() method that returns the perimeter.
+
+const r = new Rectangle(4, 5);
+console.log(r.area());      // 20
+console.log(r.perimeter()); // 18","class Rectangle {
+  constructor(width, height) {
+    this.width = width;
+    this.height = height;
+  }
+  area() {
+    return this.width * this.height;
+  }
+  perimeter() {
+    return 2 * (this.width + this.height);
+  }
+}",,Class methods are defined directly inside the class body without the function keyword. The constructor stores instance data on this. area() and perimeter() use those properties to compute the result.,,2026-05-15 16:54:22.904349+00
+JSH006,hard,currying,write_the_code,"Write a function curry(fn) that converts a two-argument function into a curried version — a function that takes the first argument and returns a new function that takes the second.
+
+const add = (a, b) => a + b;
+const curriedAdd = curry(add);
+console.log(curriedAdd(3)(4)); // 7","function curry(fn) {
+  return function(a) {
+    return function(b) {
+      return fn(a, b);
+    };
+  };
+}","const curry = fn => a => b => fn(a, b);","Currying transforms a multi-argument function into a chain of single-argument functions. curry(fn) returns a function waiting for a, which returns another waiting for b. When b arrives, fn(a, b) is called with both arguments.",,2026-05-15 16:54:22.904349+00
+JSH007,hard,generators,write_the_code,"Write a generator function range(start, end) that yields each integer from start to end inclusive.
+
+const nums = [...range(1, 4)];
+console.log(nums); // [1, 2, 3, 4]","function* range(start, end) {
+  for (let i = start; i <= end; i++) {
+    yield i;
+  }
+}",,"The function* syntax defines a generator. yield pauses execution and returns a value to the caller. The spread operator [...range(1,4)] repeatedly calls .next() until the generator is exhausted, collecting all yielded values.",,2026-05-15 16:54:22.904349+00
+JSH008,hard,deep-copy,write_the_code,"Write a function deepClone(obj) that returns a deep clone of a plain object using JSON.parse and JSON.stringify. Verify that modifying the clone does not affect the original.
+
+const original = { a: 1, b: { c: 2 } };
+const clone = deepClone(original);
+clone.b.c = 99;
+console.log(original.b.c); // 2","function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}",,"JSON.stringify serialises the object to a string (losing the reference), and JSON.parse recreates a brand-new object from that string. Nested objects are fully copied, so changes to the clone do not affect the original. This approach works for plain data but does not handle functions, undefined, or circular references.",,2026-05-15 16:54:22.904349+00
+JSH009,hard,higher-order-functions,write_the_code,"Write a function compose(f, g) that returns a new function which applies g first, then f to the result.
+
+const double = x => x * 2;
+const addOne = x => x + 1;
+const doubleThenAdd = compose(addOne, double);
+console.log(doubleThenAdd(5)); // 11","function compose(f, g) {
+  return x => f(g(x));
+}",,"Function composition creates a pipeline: the input passes through g first, then the result of g passes through f. compose(addOne, double)(5) computes addOne(double(5)) = addOne(10) = 11. Right-to-left application is the mathematical convention for compose.",,2026-05-15 16:54:22.904349+00
+JSH010,hard,objects,write_the_code,"Write a function invertObject(obj) that returns a new object with all keys and values swapped.
+
+invertObject({ a: 1, b: 2, c: 3 }); // { '1': 'a', '2': 'b', '3': 'c' }","function invertObject(obj) {
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [v, k])
+  );
+}","function invertObject(obj) {
+  const result = {};
+  for (const [k, v] of Object.entries(obj)) {
+    result[v] = k;
+  }
+  return result;
+}","Object.entries returns [key, value] pairs. Mapping over them and swapping the pair produces [value, key] tuples. Object.fromEntries converts those tuples back into an object, effectively inverting the original.",,2026-05-15 16:54:22.904349+00
+JSH011,hard,regex,write_the_code,"Write a function maskEmail(email) that replaces every character of the local part (before @) except the first with an asterisk.
+
+maskEmail('alice@example.com'); // 'a****@example.com'
+maskEmail('bob@mail.com');      // 'b**@mail.com'","function maskEmail(email) {
+  const [local, domain] = email.split('@');
+  return local[0] + '*'.repeat(local.length - 1) + '@' + domain;
+}","function maskEmail(email) {
+  return email.replace(/(?<=^.)([^@]+)/, m => '*'.repeat(m.length));
+}",Splitting on '@' isolates the local part. We keep the first character and replace the rest with asterisks using '*'.repeat(). The result is reassembled with '@' and the domain. The alternative uses a regex with a lookbehind to match all characters after the first up to the '@'.,,2026-05-15 16:54:22.904349+00
+JSH012,hard,prototypes,write_the_code,"Write a constructor function Stack and add push, pop, and peek methods to its prototype. pop returns and removes the top item; peek returns it without removing.
+
+const s = new Stack();
+s.push(1); s.push(2); s.push(3);
+console.log(s.peek()); // 3
+console.log(s.pop());  // 3
+console.log(s.pop());  // 2","function Stack() {
+  this.items = [];
+}
+Stack.prototype.push = function(item) {
+  this.items.push(item);
+};
+Stack.prototype.pop = function() {
+  return this.items.pop();
+};
+Stack.prototype.peek = function() {
+  return this.items[this.items.length - 1];
+};",,"Prototype methods are shared across all instances rather than recreated per object. The constructor initialises this.items as an array. push delegates to Array.push, pop delegates to Array.pop (both mutate the array), and peek reads the last element without removing it.",,2026-05-15 16:54:22.904349+00
+JSH013,hard,closures,output_prediction,"What will the following code log to the console?
+
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}","3
+3
+3",,"var is function-scoped, so all three arrow functions share the same i variable. By the time setTimeout fires (even with 0 ms delay), the for loop has already completed and i is 3. All three callbacks log 3.",,2026-05-15 16:54:22.904349+00
+JSH014,hard,closures,output_prediction,"What will the following code log to the console?
+
+for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}","0
+1
+2",,"let is block-scoped. Each iteration of the loop creates a brand-new binding of i. The three arrow functions each close over their own separate i, so they log 0, 1, and 2 respectively — unlike var which would share a single binding.",,2026-05-15 16:54:22.904349+00
+JSH015,hard,this,output_prediction,"What will the following code log to the console?
+
+const obj = {
+  name: 'Alice',
+  getName: function() {
+    return this.name;
+  }
+};
+const fn = obj.getName;
+console.log(fn());",undefined,,"When a method is extracted from an object and called as a plain function, it loses its original this binding. fn() calls getName with this set to the global object (or undefined in strict mode). The global object has no name property, so undefined is returned.",,2026-05-15 16:54:22.904349+00
+JSH016,hard,prototypes,output_prediction,"What will the following code log to the console?
+
+function Animal(name) {
+  this.name = name;
+}
+Animal.prototype.speak = function() {
+  return this.name + ' says hi';
+};
+const dog = new Animal('Rex');
+console.log(dog.speak());
+console.log(dog.hasOwnProperty('speak'));","Rex says hi
+false",,"dog.speak() works because JavaScript walks up the prototype chain and finds speak on Animal.prototype. However, speak is not an own property of dog — it belongs to the prototype. hasOwnProperty checks only the instance's own enumerable properties, so it returns false.",,2026-05-15 16:54:22.904349+00
+JSH017,hard,event-loop,output_prediction,"What will the following code log to the console?
+
+console.log('start');
+setTimeout(() => console.log('timeout'), 0);
+Promise.resolve().then(() => console.log('promise'));
+console.log('end');","start
+end
+promise
+timeout",,"Synchronous code runs first ('start', 'end'). Then microtasks (Promise callbacks) run before macrotasks (setTimeout callbacks). Promise.resolve().then queues a microtask, setTimeout queues a macrotask. Microtasks drain before the next macrotask runs, so 'promise' logs before 'timeout'.",,2026-05-15 16:54:22.904349+00
+JSH018,hard,classes,output_prediction,"What will the following code log to the console?
+
+class Vehicle {
+  constructor(speed) { this.speed = speed; }
+  describe() { return `Speed: ${this.speed}`; }
+}
+class Car extends Vehicle {
+  describe() {
+    return super.describe() + ', Type: car';
+  }
+}
+const c = new Car(120);
+console.log(c.describe());","Speed: 120, Type: car",,"super.describe() calls Vehicle's describe method in the context of the Car instance (this.speed is 120). Car's describe then appends its own string. This pattern lets subclasses extend, rather than replace, the parent's behaviour.",,2026-05-15 16:54:22.904349+00
+JSH019,hard,spread,output_prediction,"What will the following code log to the console?
+
+const a = [1, 2, 3];
+const b = [...a];
+b.push(4);
+console.log(a.length);
+console.log(b.length);","3
+4",,Spread creates a shallow copy of the array. b is a new array containing the same primitive values. Pushing to b does not affect a. a.length stays at 3; b.length grows to 4 after the push.,,2026-05-15 16:54:22.904349+00
+JSH020,hard,promises,output_prediction,"What will the following code log to the console?
+
+Promise.resolve(2)
+  .then(x => x + 3)
+  .then(x => x * 2)
+  .then(x => console.log(x));",10,,"Each .then receives the return value of the previous callback. 2 → 2+3=5 → 5*2=10 → console.log(10). Each step returns a resolved Promise wrapping its return value, which is automatically unwrapped by the next .then.",,2026-05-15 16:54:22.904349+00
+JSH021,hard,this,output_prediction,"What will the following code log to the console?
+
+function sum(a, b, c) {
+  return a + b + c;
+}
+const nums = [1, 2, 3];
+console.log(sum.apply(null, nums));",6,,"Function.prototype.apply is like call but accepts arguments as an array. apply(null, [1, 2, 3]) spreads the array into individual arguments, so sum receives a=1, b=2, c=3 and returns 6. null is passed as this because sum doesn't use this.",,2026-05-15 16:54:22.904349+00
+JSH022,hard,closures,output_prediction,"What will the following code log to the console?
+
+function makeAdder(x) {
+  return function(y) {
+    return x + y;
+  };
+}
+const add5 = makeAdder(5);
+const add10 = makeAdder(10);
+console.log(add5(3));
+console.log(add10(3));","8
+13",,makeAdder is a closure factory. Each call creates a new inner function that closes over its own x. add5 captures x=5 and add10 captures x=10. Calling each with y=3 gives 5+3=8 and 10+3=13.,,2026-05-15 16:54:22.904349+00
+JSH023,hard,objects,output_prediction,"What will the following code log to the console?
+
+const obj = { a: 1, b: 2, c: 3 };
+const doubled = Object.fromEntries(
+  Object.entries(obj).map(([k, v]) => [k, v * 2])
+);
+console.log(doubled.b);",4,,"Object.entries converts obj to [['a',1],['b',2],['c',3]]. Mapping doubles each value to produce [['a',2],['b',4],['c',6]]. Object.fromEntries builds a new object from those pairs. doubled.b is 4.",,2026-05-15 16:54:22.904349+00
+JSH024,hard,generators,output_prediction,"What will the following code log to the console?
+
+function* counter() {
+  let n = 0;
+  while (true) {
+    yield n++;
+  }
+}
+const gen = counter();
+console.log(gen.next().value);
+console.log(gen.next().value);
+console.log(gen.next().value);","0
+1
+2",,"The generator uses an infinite while loop. Each call to gen.next() resumes execution from the yield, returns the current n, then increments it (post-increment). Successive calls return 0, 1, 2. The generator never exhausts because the loop is infinite.",,2026-05-15 16:54:22.904349+00
+JSH025,hard,prototypes,what_is_the_result,"What will the following code log to the console?
+
+console.log(typeof class{});",function,,Classes in JavaScript are syntactic sugar over constructor functions. The typeof operator treats them as functions and returns 'function'. This is why instanceof and prototype-chain lookups work the same way for classes and constructor functions.,,2026-05-15 16:54:22.904349+00
+JSH026,hard,coercion,what_is_the_result,"What will the following code log to the console?
+
+console.log(NaN === NaN);",false,,NaN (Not a Number) is the only value in JavaScript not equal to itself. This is specified by the IEEE 754 standard. Use Number.isNaN(value) to reliably check whether a value is NaN.,,2026-05-15 16:54:22.904349+00
+JSH027,hard,references,what_is_the_result,"What will the following code log to the console?
+
+const a = [1, 2, 3];
+const b = a;
+b.push(4);
+console.log(a.length);",4,,"Arrays are objects — reference types. const b = a copies the reference, not the array. Both a and b point to the same array in memory. Calling b.push(4) mutates that shared array, so a.length also becomes 4.",,2026-05-15 16:54:22.904349+00
+JSH028,hard,operators,what_is_the_result,"What will the following code log to the console?
+
+const x = null ?? 'default';
+const y = 0 ?? 'fallback';
+console.log(x);
+console.log(y);","default
+0",,"The nullish coalescing operator ?? returns the right-hand side only when the left-hand side is null or undefined — not for other falsy values like 0, false, or ''. x is null so 'default' is used; y is 0 (not null/undefined) so 0 is kept.",,2026-05-15 16:54:22.904349+00
+JSH029,hard,optional-chaining,what_is_the_result,"What will the following code log to the console?
+
+const user = { profile: { name: 'Alice' } };
+console.log(user?.profile?.name);
+console.log(user?.address?.city);","Alice
+undefined",,"Optional chaining (?.) short-circuits and returns undefined when it encounters null or undefined, instead of throwing a TypeError. user.profile.name exists, so 'Alice' is returned. user.address is undefined, so the chain stops there and returns undefined.",,2026-05-15 16:54:22.904349+00
+JSH030,hard,functions,what_is_the_result,"What will the following code log to the console?
+
+function test(a = 1, b = 2) {
+  return a + b;
+}
+console.log(test(undefined, 5));",6,,Default parameters activate only when the corresponding argument is undefined. Passing undefined explicitly for a triggers the default (1). b is explicitly 5. 1 + 5 = 6.,,2026-05-15 16:54:22.904349+00
+JSH031,hard,arrays,what_is_the_result,"What will the following code log to the console?
+
+const arr = [1, [2, [3, [4]]]];
+console.log(arr.flat().length);",3,,"flat() with no argument defaults to a depth of 1, flattening only one level. [1, [2, [3, [4]]]] becomes [1, 2, [3, [4]]], which has three elements. To flatten all levels, use flat(Infinity).",,2026-05-15 16:54:22.904349+00
+JSH032,hard,map,what_is_the_result,"What will the following code log to the console?
+
+const map = new Map();
+map.set('a', 1);
+map.set('b', 2);
+map.set('a', 3);
+console.log(map.size);",2,,"Map keys are unique. Setting the key 'a' a second time updates the existing entry to 3 rather than adding a new entry. The Map contains two unique keys ('a' and 'b'), so map.size is 2.",,2026-05-15 16:54:22.904349+00
+JSH033,hard,coercion,what_is_the_result,"What will the following code log to the console?
+
+console.log(0.1 + 0.2 === 0.3);",false,,"JavaScript uses IEEE 754 double-precision floating-point arithmetic. 0.1 + 0.2 evaluates to 0.30000000000000004 due to binary representation rounding, which is not strictly equal to 0.3. Use Math.abs(a - b) < Number.EPSILON to compare floats.",,2026-05-15 16:54:22.904349+00
+JSH034,hard,destructuring,what_is_the_result,"What will the following code log to the console?
+
+const [a, , b] = [10, 20, 30];
+console.log(a + b);",40,,"Array destructuring with consecutive commas skips elements. The first element (10) binds to a, the second (20) is skipped by the empty slot, the third (30) binds to b. 10 + 30 = 40.",,2026-05-15 16:54:22.904349+00
+JSH035,hard,regex,what_is_the_result,"What will the following code log to the console?
+
+const pattern = /^\d{3}-\d{4}$/;
+console.log(pattern.test('123-4567'));
+console.log(pattern.test('12-45678'));","true
+false",,"^ anchors the match to the start, $ to the end. \d{3} requires exactly 3 digits and \d{4} exactly 4. '123-4567' matches this format exactly. '12-45678' has only 2 digits before the dash and 5 after, so the pattern fails.",,2026-05-15 16:54:22.904349+00
+JSH036,hard,classes,what_is_the_result,"What will the following code log to the console?
+
+class Counter {
+  static count = 0;
+  constructor() { Counter.count++; }
+}
+new Counter(); new Counter(); new Counter();
+console.log(Counter.count);",3,,"Static properties belong to the class itself, not to individual instances. Each call to new Counter() runs the constructor which increments Counter.count. Three instantiations increment the shared static property three times, resulting in 3.",,2026-05-15 16:54:22.904349+00
+JSH037,hard,this,fill_in_the_blank,"Fill in the blank so that greet is called with obj as its this context:
+
+function greet() {
+  return 'Hello, ' + this.name;
+}
+const obj = { name: 'Alice' };
+const sayHello = greet.___(obj);
+console.log(sayHello()); // Hello, Alice","function greet() {
+  return 'Hello, ' + this.name;
+}
+const obj = { name: 'Alice' };
+const sayHello = greet.bind(obj);
+console.log(sayHello()); // Hello, Alice",,"bind returns a new function permanently bound to the given this value. Unlike call or apply (which invoke immediately), bind creates a reusable function you can call later. sayHello() always uses obj as this.","Hello, Alice",2026-05-15 16:54:22.904349+00
+JSH038,hard,async-await,fill_in_the_blank,"Fill in the blank to make the function asynchronous:
+
+___ function fetchData() {
+  const result = await Promise.resolve(42);
+  return result;
+}
+fetchData().then(console.log); // 42","async function fetchData() {
+  const result = await Promise.resolve(42);
+  return result;
+}
+fetchData().then(console.log); // 42",,The async keyword marks a function as asynchronous and makes it return a Promise automatically. Only inside an async function can you use await to pause execution until a Promise resolves.,42,2026-05-15 16:54:22.904349+00
+JSH039,hard,spread,fill_in_the_blank,"Fill in the blank to pass the array elements as individual arguments:
+
+const nums = [5, 3, 8, 1];
+const min = Math.min(___nums);
+console.log(min); // 1","const nums = [5, 3, 8, 1];
+const min = Math.min(...nums);
+console.log(min); // 1",,"The spread operator (...) expands an iterable (array, string) into individual arguments at a function call site. Math.min(...nums) is equivalent to Math.min(5, 3, 8, 1), which returns 1.",1,2026-05-15 16:54:22.904349+00
+JSH040,hard,objects,fill_in_the_blank,"Fill in the blank to prevent any modification to the object:
+
+const config = Object.___({ debug: false, version: '1.0' });
+config.debug = true;
+console.log(config.debug); // false","const config = Object.freeze({ debug: false, version: '1.0' });
+config.debug = true;
+console.log(config.debug); // false",,"Object.freeze makes an object immutable — attempts to add, remove, or change properties are silently ignored in non-strict mode (or throw in strict mode). The frozen object's debug property remains false after the assignment attempt.",false,2026-05-15 16:54:22.904349+00
+JSH041,hard,classes,fill_in_the_blank,"Fill in the blank to define a getter method in a class:
+
+class Circle {
+  constructor(r) { this.r = r; }
+  ___ area() { return Math.PI * this.r ** 2; }
+}
+const c = new Circle(1);
+console.log(c.area.toFixed(2)); // 3.14","class Circle {
+  constructor(r) { this.r = r; }
+  get area() { return Math.PI * this.r ** 2; }
+}
+const c = new Circle(1);
+console.log(c.area.toFixed(2)); // 3.14",,The get keyword defines a getter — a method accessed as a property (no parentheses). c.area reads as a property but executes the function body. This is useful for computed values that should look like properties to callers.,3.14,2026-05-15 16:54:22.904349+00
+JSH042,hard,error-handling,fill_in_the_blank,"Fill in the blank to handle the thrown error:
+
+try {
+  JSON.parse('not json');
+} ___ (e) {
+  console.log('Error:', e.message);
+}","try {
+  JSON.parse('not json');
+} catch (e) {
+  console.log('Error:', e.message);
+}",,The catch block runs only when the try block throws an error. The caught value (here a SyntaxError) is bound to e. e.message contains a description of what went wrong. JSON.parse throws a SyntaxError when given invalid JSON.,"Error: Unexpected token 'o', ""not json"" is not valid JSON",2026-05-15 16:54:22.904349+00
+JSH043,hard,classes,fill_in_the_blank,"Fill in the blank to call the parent class constructor:
+
+class Animal {
+  constructor(name) { this.name = name; }
+}
+class Dog extends Animal {
+  constructor(name, breed) {
+    ___(name);
+    this.breed = breed;
+  }
+}
+const d = new Dog('Rex', 'Labrador');
+console.log(d.name); // Rex","class Animal {
+  constructor(name) { this.name = name; }
+}
+class Dog extends Animal {
+  constructor(name, breed) {
+    super(name);
+    this.breed = breed;
+  }
+}
+const d = new Dog('Rex', 'Labrador');
+console.log(d.name); // Rex",,"super() must be called before accessing this in a subclass constructor. It invokes the parent class's constructor, allowing Animal to initialise this.name. Without super(), accessing this throws a ReferenceError.",Rex,2026-05-15 16:54:22.904349+00
+JSH044,hard,functions,fill_in_the_blank,"Fill in the blank to collect all extra arguments into an array:
+
+function logFirst(first, ___rest) {
+  console.log(first);
+  console.log(rest.length);
+}
+logFirst(1, 2, 3, 4); // logs 1, then 3","function logFirst(first, ...rest) {
+  console.log(first);
+  console.log(rest.length);
+}
+logFirst(1, 2, 3, 4); // logs 1, then 3",,"The rest parameter (...rest) collects all remaining arguments into a real array. logFirst(1, 2, 3, 4) binds first=1 and rest=[2,3,4]. rest.length is 3.","1
+3",2026-05-15 16:54:22.904349+00
+JSH045,hard,promises,fill_in_the_blank,"Fill in the blank to wait for all three promises to resolve:
+
+Promise.___(
+  [Promise.resolve(1), Promise.resolve(2), Promise.resolve(3)]
+).then(values => console.log(values)); // [1, 2, 3]","Promise.all(
+  [Promise.resolve(1), Promise.resolve(2), Promise.resolve(3)]
+).then(values => console.log(values)); // [1, 2, 3]",,"Promise.all takes an iterable of Promises and returns a single Promise that resolves to an array of their results, in the same order. If any Promise rejects, Promise.all rejects immediately with that error.","[1,2,3]",2026-05-15 16:54:22.904349+00
+JSH046,hard,operators,fill_in_the_blank,"Fill in the blank to check whether d is an instance of Animal:
+
+class Animal {}
+class Dog extends Animal {}
+const d = new Dog();
+console.log(d ___ Animal); // true","class Animal {}
+class Dog extends Animal {}
+const d = new Dog();
+console.log(d instanceof Animal); // true",,"instanceof walks the prototype chain of the left-hand operand to check whether the prototype of the right-hand constructor appears. Because Dog extends Animal, Dog instances also appear on Animal's prototype chain.",true,2026-05-15 16:54:22.904349+00
+JSH047,hard,destructuring,fill_in_the_blank,"Fill in the blank to provide a default value when the key is missing:
+
+const { name, role ___ 'user' } = { name: 'Alice' };
+console.log(role); // user","const { name, role = 'user' } = { name: 'Alice' };
+console.log(role); // user",,"Destructuring default values use = inside the pattern. If the property is undefined (missing or explicitly undefined), the default is used. role is not in the object, so it defaults to 'user'.",user,2026-05-15 16:54:22.904349+00
+JSH048,hard,symbols,fill_in_the_blank,"Fill in the blank to create a unique symbol key:
+
+const id = ___('uniqueId');
+const obj = { [id]: 42 };
+console.log(obj[id]); // 42","const id = Symbol('uniqueId');
+const obj = { [id]: 42 };
+console.log(obj[id]); // 42",,"Symbol() creates a globally unique primitive value. Each call produces a different symbol, even with the same description string. Using a Symbol as a computed property key ([id]) creates a property that cannot be accidentally accessed by name.",42,2026-05-15 16:54:22.904349+00
+JSH049,hard,closures,spot_the_bug,"Find and fix the bug. The code should log 0, 1, 2 but logs 3, 3, 3:
+
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}","for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}",,"var is function-scoped, so all three callbacks share one i. By the time they run, the loop has finished and i is 3. Replacing var with let creates a new block-scoped i for each iteration, so each callback captures its own copy.","0
+1
+2",2026-05-15 16:54:22.904349+00
+JSH050,hard,this,spot_the_bug,"Find and fix the bug. The timer should increment the counter on the object, but this.count becomes NaN:
+
+const counter = {
+  count: 0,
+  start() {
+    setTimeout(function() {
+      this.count++;
+      console.log(this.count);
+    }, 100);
+  }
+};
+counter.start();","const counter = {
+  count: 0,
+  start() {
+    setTimeout(() => {
+      this.count++;
+      console.log(this.count);
+    }, 100);
+  }
+};
+counter.start();",,"Regular functions inside setTimeout have their own this binding, which defaults to the global object (or undefined in strict mode) — not counter. Arrow functions do not have their own this; they inherit it lexically from the enclosing start() method, where this is counter.",1,2026-05-15 16:54:22.904349+00
+JSH051,hard,async-await,spot_the_bug,"Find and fix the bug. The function should return 43, but result is a Promise and the log shows '[object Promise]1':
+
+async function getValue() {
+  const result = Promise.resolve(42);
+  return result + 1;
+}
+getValue().then(console.log);","async function getValue() {
+  const result = await Promise.resolve(42);
+  return result + 1;
+}
+getValue().then(console.log);",,"Without await, result is the Promise object itself, not its resolved value. Adding await pauses the async function until the Promise resolves to 42, then result + 1 correctly computes 43.",43,2026-05-15 16:54:22.904349+00
+JSH052,hard,arrays,spot_the_bug,"Find and fix the bug. The function should return a sorted copy without mutating the original, but it modifies nums:
+
+function sortedCopy(arr) {
+  return arr.sort((a, b) => a - b);
+}
+const nums = [3, 1, 2];
+const sorted = sortedCopy(nums);
+console.log(nums); // [1, 2, 3] — original was mutated","function sortedCopy(arr) {
+  return [...arr].sort((a, b) => a - b);
+}
+const nums = [3, 1, 2];
+const sorted = sortedCopy(nums);
+console.log(nums); // [3, 1, 2]",,Array.prototype.sort sorts in place and returns the same array. Calling it directly on arr mutates the original. Creating a shallow copy first with spread ([...arr]) or slice() before sorting leaves the original intact.,"[3,1,2]",2026-05-15 16:54:22.904349+00
+JSH053,hard,coercion,spot_the_bug,"Find and fix the bug. The function should return true for NaN, but always returns false:
+
+function isNaNValue(val) {
+  return val === NaN;
+}
+console.log(isNaNValue(NaN)); // Should be true, returns false","function isNaNValue(val) {
+  return Number.isNaN(val);
+}
+console.log(isNaNValue(NaN)); // true",,"NaN is the only value not equal to itself — NaN === NaN is always false. Number.isNaN(val) is the correct way to check: it returns true only for the actual NaN value, without the type-coercion side-effects of the global isNaN().",true,2026-05-15 16:54:22.904349+00
+JSH054,hard,prototypes,spot_the_bug,"Find and fix the bug. The greet method should return the instance's name, but it logs 'Hi, I'm undefined':
+
+function Person(name) {
+  this.name = name;
+}
+Person.prototype.greet = () => {
+  return `Hi, I'm ${this.name}`;
+};
+const p = new Person('Alice');
+console.log(p.greet());","function Person(name) {
+  this.name = name;
+}
+Person.prototype.greet = function() {
+  return `Hi, I'm ${this.name}`;
+};
+const p = new Person('Alice');
+console.log(p.greet());",,"Arrow functions capture this from their surrounding scope at definition time — the global scope here, where this.name is undefined. Prototype methods must be regular functions so this is dynamically bound to the instance when the method is called.","Hi, I'm Alice",2026-05-15 16:54:22.904349+00
+JSH055,hard,promises,spot_the_bug,"Find and fix the bug. The chain should log 11 but logs undefined:
+
+Promise.resolve(5)
+  .then(n => {
+    const doubled = n * 2;
+    Promise.resolve(doubled + 1);
+  })
+  .then(result => console.log(result));","Promise.resolve(5)
+  .then(n => {
+    const doubled = n * 2;
+    return Promise.resolve(doubled + 1);
+  })
+  .then(result => console.log(result));",,"A .then callback that returns nothing passes undefined to the next handler. Adding return before Promise.resolve(doubled + 1) passes the resolved value (11) down the chain. Alternatively, simply return the computed value directly without wrapping it in a new Promise.",11,2026-05-15 16:54:22.904349+00
+JSH056,hard,deep-copy,spot_the_bug,"Find and fix the bug. Modifying the clone's nested array should not affect the original, but it does:
+
+const original = { name: 'Alice', scores: [90, 85] };
+const clone = { ...original };
+clone.scores.push(100);
+console.log(original.scores.length); // 3 — original was mutated","const original = { name: 'Alice', scores: [90, 85] };
+const clone = { ...original, scores: [...original.scores] };
+clone.scores.push(100);
+console.log(original.scores.length); // 2",,"Spread performs a shallow copy. The scores array reference is shared between original and clone. Pushing to clone.scores mutates the shared array. Explicitly copying the nested array with [...original.scores] breaks the reference, keeping the original intact.",2,2026-05-15 16:54:22.904349+00
+JSH057,hard,error-handling,spot_the_bug,"Find and fix the bug. Custom errors should be instances of Error, but the instanceof check returns false:
+
+class AppError {
+  constructor(message) {
+    this.message = message;
+  }
+}
+try {
+  throw new AppError('oops');
+} catch (e) {
+  console.log(e instanceof Error); // false — should be true
+}","class AppError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'AppError';
+  }
+}
+try {
+  throw new AppError('oops');
+} catch (e) {
+  console.log(e instanceof Error); // true
+}",,"A plain class is not part of the Error prototype chain. Extending Error places AppError on that chain, so instanceof Error returns true. Calling super(message) lets the Error constructor set up the message property and stack trace correctly.",true,2026-05-15 16:54:22.904349+00
+JSH058,hard,regex,spot_the_bug,"Find and fix the bug. The validator should return false for 'abc123xyz', but returns true:
+
+function isNumber(str) {
+  return /\d+/.test(str);
+}
+console.log(isNumber('abc123xyz')); // Should be false, returns true","function isNumber(str) {
+  return /^\d+$/.test(str);
+}
+console.log(isNumber('abc123xyz')); // false
+console.log(isNumber('123'));       // true",,"Without anchors, /\d+/ matches any substring containing digits — 'abc123xyz' contains '123', so test() returns true. Adding ^ (start) and $ (end) anchors forces the entire string to consist only of digits.","false
+true",2026-05-15 16:54:22.904349+00
+JSH059,hard,objects,spot_the_bug,"Find and fix the bug. The defaults object should never be modified, but it is:
+
+const defaults = { color: 'blue', size: 10 };
+function applyConfig(overrides) {
+  return Object.assign(defaults, overrides);
+}
+applyConfig({ size: 20 });
+console.log(defaults.size); // 20 — defaults was mutated","const defaults = { color: 'blue', size: 10 };
+function applyConfig(overrides) {
+  return Object.assign({}, defaults, overrides);
+}
+applyConfig({ size: 20 });
+console.log(defaults.size); // 10",,"Object.assign copies into its first argument (the target). Passing defaults as the target mutates it. Using {} as the target creates a new object, leaving defaults unchanged. Spread syntax ({...defaults, ...overrides}) achieves the same result more concisely.",10,2026-05-15 16:54:22.904349+00
+JSH060,hard,async-await,spot_the_bug,"Find and fix the bug. The code throws a SyntaxError because await is used in a non-async function:
+
+function loadValue() {
+  const result = await Promise.resolve(42);
+  return result;
+}
+loadValue().then(console.log);","async function loadValue() {
+  const result = await Promise.resolve(42);
+  return result;
+}
+loadValue().then(console.log); // 42",,await is only valid inside an async function. Adding async makes loadValue return a Promise automatically. The caller must then use .then() (or await inside another async function) to access the resolved value.,42,2026-05-15 16:54:22.904349+00
+JSI001,intermediate,hoisting,output_prediction,"What will the following code log to the console?
+
+console.log(name);
+var name = ""Alice"";",undefined,,"var declarations are hoisted to the top of their scope and initialised to undefined. The declaration is moved up, but the assignment stays in place, so console.log prints undefined rather than throwing a ReferenceError.",,2026-05-15 16:49:50.143672+00
+JSI002,intermediate,hoisting,output_prediction,"What will the following code log to the console?
+
+greet();
+function greet() {
+  console.log(""Hello!"");
+}",Hello!,,Function declarations are fully hoisted — both the name and the body move to the top of the scope. This allows you to call a declared function before its definition in the source code.,,2026-05-15 16:49:50.143672+00
+JSI003,intermediate,hoisting,output_prediction,"What will the following code log to the console?
+
+console.log(x);
+let x = 5;",ReferenceError: Cannot access 'x' before initialization,,let is hoisted but NOT initialised. The period between the start of the block and the let declaration is the Temporal Dead Zone (TDZ). Accessing x in the TDZ throws a ReferenceError.,,2026-05-15 16:49:50.143672+00
+JSI004,intermediate,hoisting,output_prediction,"What will the following code log to the console?
+
+var x = 1;
+function test() {
+  console.log(x);
+  var x = 2;
+}
+test();",undefined,,"The var x inside test() is hoisted to the top of that function's scope, creating a local x initialised to undefined. The outer x = 1 is shadowed, so console.log prints undefined.",,2026-05-15 16:49:50.143672+00
+JSI005,intermediate,hoisting,spot_the_bug,"Find and fix the bug. The code should log 'Hello, Bob!' but throws an error:
+
+console.log(greet(""Bob""));
+const greet = name => `Hello, ${name}!`;","const greet = name => `Hello, ${name}!`;
+console.log(greet(""Bob""));",,Arrow functions assigned to const are not hoisted like function declarations. Accessing greet before its const declaration is in the Temporal Dead Zone and throws a ReferenceError. Move the call after the definition.,"Hello, Bob!",2026-05-15 16:49:50.143672+00
+JSI006,intermediate,closures,output_prediction,"What will the following code log to the console?
+
+function makeCounter() {
+  let count = 0;
+  return function() {
+    count++;
+    return count;
+  };
+}
+const counter = makeCounter();
+console.log(counter());
+console.log(counter());
+console.log(counter());","1
+2
+3",,"The inner function closes over the count variable in its outer scope. Each call to counter() increments and returns the same count variable, which persists between calls because the closure keeps it alive.",,2026-05-15 16:49:50.143672+00
+JSI007,intermediate,closures,output_prediction,"What will the following code log to the console?
+
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 0);
+}","3
+3
+3",,"var is function-scoped and shared across all iterations. By the time the setTimeout callbacks run, the loop has finished and i is 3. All three callbacks read the same i and log 3.",,2026-05-15 16:49:50.143672+00
+JSI008,intermediate,closures,write_the_code,"Write a function called makeMultiplier that takes a number factor and returns a new function. The returned function should take a number n and return n multiplied by factor.
+
+const double = makeMultiplier(2);
+console.log(double(5)); // 10
+console.log(double(9)); // 18","function makeMultiplier(factor) {
+  return function(n) {
+    return n * factor;
+  };
+}",const makeMultiplier = factor => n => n * factor;,"The inner function closes over factor from the outer scope. Each call to makeMultiplier captures a different factor, so double always multiplies by 2 and triple always multiplies by 3.",,2026-05-15 16:49:50.143672+00
+JSI009,intermediate,closures,write_the_code,"Fix the classic var-in-loop closure bug so that the code logs 0, 1, 2 (one per second) instead of 3, 3, 3:
+
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), i * 1000);
+}","for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), i * 1000);
+}","for (var i = 0; i < 3; i++) {
+  (function(j) {
+    setTimeout(() => console.log(j), j * 1000);
+  })(i);
+}","Replacing var with let creates a new binding of i for each loop iteration, so each callback captures its own copy. An IIFE achieves the same effect by creating a new scope with the current value captured as j.",,2026-05-15 16:49:50.143672+00
+JSI010,intermediate,closures,output_prediction,"What will the following code log to the console?
+
+function outer() {
+  let secret = 42;
+  return {
+    get: () => secret,
+    set: val => { secret = val; }
+  };
+}
+const obj = outer();
+console.log(obj.get());
+obj.set(100);
+console.log(obj.get());","42
+100",,"Both get and set close over the same secret variable. Calling set(100) mutates that shared variable, so the next call to get() returns 100. This pattern uses closures to create private state.",,2026-05-15 16:49:50.143672+00
+JSI011,intermediate,arrow-functions,output_prediction,"What will the following code log to the console?
+
+const person = {
+  name: ""Alice"",
+  greet: function() {
+    return ""Hello, "" + this.name;
+  }
+};
+console.log(person.greet());","Hello, Alice",,"When a regular function is called as a method (person.greet()), this refers to the object to the left of the dot — here, person. So this.name is 'Alice'.",,2026-05-15 16:49:50.143672+00
+JSI012,intermediate,arrow-functions,output_prediction,"What will the following code log to the console?
+
+const person = {
+  name: ""Alice"",
+  greet: () => {
+    return ""Hello, "" + this.name;
+  }
+};
+console.log(person.greet());","Hello, undefined",,"Arrow functions do not have their own this. They inherit this from the enclosing lexical scope, which is the module/global scope here — where this.name is undefined. Use a regular function when you need method-level this binding.",,2026-05-15 16:49:50.143672+00
+JSI013,intermediate,arrow-functions,fill_in_the_blank,"Fill in the blank with an arrow function so the timer logs the instance's name (a regular function would lose `this`):
+
+function Timer(name) {
+  this.name = name;
+  setTimeout(___, 100);
+}
+new Timer(""Alice"");","function Timer(name) {
+  this.name = name;
+  setTimeout(() => console.log(this.name), 100);
+}
+new Timer(""Alice"");",,"An arrow function captures this from the enclosing regular function (the Timer constructor), so this.name refers to the instance. Using a regular function inside setTimeout would lose the constructor's this context.",Alice,2026-05-15 16:49:50.143672+00
+JSI014,intermediate,arrow-functions,output_prediction,"What will the following code log to the console?
+
+const nums = [1, 2, 3, 4, 5];
+const result = nums
+  .filter(n => n % 2 === 0)
+  .map(n => n * n);
+console.log(result);","[4, 16]",,"filter keeps only even numbers: [2, 4]. map then squares each: [4, 16]. Arrow functions make chained array operations concise. console.log of an array displays it with brackets.",,2026-05-15 16:49:50.143672+00
+JSI015,intermediate,higher-order-functions,write_the_code,"Write a function called filterLong that takes an array of strings and a minimum length n, and returns only the strings longer than n characters.
+
+filterLong(['hi', 'hello', 'hey', 'JavaScript'], 3) // ['hello', 'JavaScript']","function filterLong(arr, n) {
+  return arr.filter(str => str.length > n);
+}",,filter() keeps elements for which the callback returns true. str.length > n is true for strings longer than n characters. filter returns a new array without modifying the original.,,2026-05-15 16:49:50.143672+00
+JSI016,intermediate,higher-order-functions,write_the_code,"Write a function called sumPositive that takes an array of numbers and returns the sum of all positive numbers using reduce.
+
+sumPositive([1, -2, 3, -4, 5]) // 9","function sumPositive(nums) {
+  return nums.reduce((acc, n) => n > 0 ? acc + n : acc, 0);
+}","function sumPositive(nums) {
+  return nums.filter(n => n > 0).reduce((acc, n) => acc + n, 0);
+}","reduce accumulates a running total. The callback adds n to the accumulator only when n > 0, skipping negatives. The second argument 0 sets the initial accumulator value.",,2026-05-15 16:49:50.143672+00
+JSI017,intermediate,higher-order-functions,fill_in_the_blank,"Fill in the blanks to get the total price of all items:
+
+const cart = [
+  { name: ""apple"", price: 1.5 },
+  { name: ""milk"", price: 2.0 },
+  { name: ""bread"", price: 3.0 }
+];
+const total = cart.___((___, item) => acc + item.price, 0);
+console.log(total); // 6.5","const cart = [
+  { name: ""apple"", price: 1.5 },
+  { name: ""milk"", price: 2.0 },
+  { name: ""bread"", price: 3.0 }
+];
+const total = cart.reduce((acc, item) => acc + item.price, 0);
+console.log(total); // 6.5",,reduce is the right tool when you want to combine all array elements into a single value. The accumulator acc starts at 0 and accumulates the price of each item.,6.5,2026-05-15 16:49:50.143672+00
+JSI018,intermediate,higher-order-functions,output_prediction,"What will the following code log to the console?
+
+const words = [""hello"", ""world"", ""foo"", ""bar""];
+const result = words
+  .map(w => w.toUpperCase())
+  .filter(w => w.length > 3)
+  .join(""-"");
+console.log(result);",HELLO-WORLD,,"map converts each word to uppercase: ['HELLO', 'WORLD', 'FOO', 'BAR']. filter keeps only words longer than 3 characters: ['HELLO', 'WORLD']. join('-') combines them into a single string.",,2026-05-15 16:49:50.143672+00
+JSI019,intermediate,higher-order-functions,write_the_code,"Write a function called groupByLength that takes an array of strings and returns an object where keys are string lengths and values are arrays of strings with that length.
+
+groupByLength(['hi', 'hey', 'yo', 'bye']) // { 2: ['hi', 'yo'], 3: ['hey', 'bye'] }","function groupByLength(arr) {
+  return arr.reduce((acc, str) => {
+    const len = str.length;
+    if (!acc[len]) acc[len] = [];
+    acc[len].push(str);
+    return acc;
+  }, {});
+}",,"reduce builds an object as the accumulator. For each string, we check if a key for its length exists — creating an empty array if not — then push the string into that group.",,2026-05-15 16:49:50.143672+00
+JSI020,intermediate,higher-order-functions,write_the_code,"Write a function called pipe that takes any number of functions and returns a new function that applies them left to right.
+
+const process = pipe(x => x * 2, x => x + 3);
+console.log(process(5)); // 13","function pipe(...fns) {
+  return function(value) {
+    return fns.reduce((acc, fn) => fn(acc), value);
+  };
+}","const pipe = (...fns) => value => fns.reduce((acc, fn) => fn(acc), value);",pipe collects all functions with rest parameters. The returned function starts with value and feeds it through each function in order using reduce. This is a foundational functional programming pattern.,,2026-05-15 16:49:50.143672+00
+JSI021,intermediate,destructuring,output_prediction,"What will the following code log to the console?
+
+const [first, , third] = [10, 20, 30];
+console.log(first);
+console.log(third);","10
+30",,Array destructuring assigns elements by position. The blank comma skips the second element (20). first gets 10 and third gets 30.,,2026-05-15 16:49:50.143672+00
+JSI022,intermediate,destructuring,output_prediction,"What will the following code log to the console?
+
+const { name, age = 25 } = { name: ""Bob"" };
+console.log(name);
+console.log(age);","Bob
+25",,"Object destructuring with a default: age = 25 means if the property is absent from the source object, the variable takes the default value. Since { name: 'Bob' } has no age, age defaults to 25.",,2026-05-15 16:49:50.143672+00
+JSI023,intermediate,destructuring,fill_in_the_blank,"Fill in the blank to swap the values of a and b using destructuring:
+
+let a = 1, b = 2;
+___ = [b, a];
+console.log(a, b); // 2 1","let a = 1, b = 2;
+[a, b] = [b, a];
+console.log(a, b); // 2 1",,"The right-hand side [b, a] creates a temporary array [2, 1]. Destructuring assignment then assigns the first element (2) to a and the second (1) to b, effectively swapping them without a temp variable.",2 1,2026-05-15 16:49:50.143672+00
+JSI024,intermediate,destructuring,write_the_code,"Write a function called getCoords that takes an object with x and y properties and returns them as an array [x, y] using destructuring in the parameter list.
+
+getCoords({ x: 3, y: 7 }) // [3, 7]","function getCoords({ x, y }) {
+  return [x, y];
+}",,"Destructuring can be done directly in the function parameter. When called with an object, { x, y } extracts the properties into local variables, which are then returned as an array.",,2026-05-15 16:49:50.143672+00
+JSI025,intermediate,spread-rest,output_prediction,"What will the following code log to the console?
+
+const a = [1, 2, 3];
+const b = [4, 5, 6];
+const combined = [...a, ...b];
+console.log(combined.length);
+console.log(combined[3]);","6
+4",,"The spread operator (...) expands an array into its individual elements. Combining two arrays of length 3 each creates an array of length 6. Index 3 is the first element of b, which is 4.",,2026-05-15 16:49:50.143672+00
+JSI026,intermediate,spread-rest,write_the_code,"Write a function called sum that accepts any number of arguments and returns their total.
+
+sum(1, 2, 3)    // 6
+sum(4, 5, 6, 7) // 22","function sum(...nums) {
+  return nums.reduce((acc, n) => acc + n, 0);
+}","function sum(...nums) {
+  let total = 0;
+  for (const n of nums) total += n;
+  return total;
+}","Rest parameters (...nums) collect all arguments into an array, regardless of how many are passed. reduce then sums them. This is more flexible than listing fixed parameters.",,2026-05-15 16:49:50.143672+00
+JSI027,intermediate,spread-rest,output_prediction,"What will the following code log to the console?
+
+function first(a, b, ...rest) {
+  console.log(a);
+  console.log(b);
+  console.log(rest);
+}
+first(1, 2, 3, 4, 5);","1
+2
+[3, 4, 5]",,"a and b receive the first two arguments. The rest parameter (...rest) gathers all remaining arguments into an array. console.log([3, 4, 5]) displays the array with brackets.",,2026-05-15 16:49:50.143672+00
+JSI028,intermediate,scope,output_prediction,"What will the following code log to the console?
+
+let x = ""global"";
+{
+  let x = ""block"";
+  console.log(x);
+}
+console.log(x);","block
+global",,"let is block-scoped. The inner let x = 'block' is a separate variable that only exists within the curly braces. Outside the block, the outer x = 'global' is still accessible.",,2026-05-15 16:49:50.143672+00
+JSI029,intermediate,scope,output_prediction,"What will the following code log to the console?
+
+function outer() {
+  let count = 0;
+  function inner() {
+    count++;
+    console.log(count);
+  }
+  inner();
+  inner();
+}
+outer();","1
+2",,inner has access to count in outer's scope via closure. Each call to inner() increments the same count variable and logs the updated value.,,2026-05-15 16:49:50.143672+00
+JSI030,intermediate,scope,spot_the_bug,"Find and fix the bug. The function should return the doubled value but logs undefined:
+
+function double(n) {
+  const result = n * 2;
+}
+console.log(double(5));","function double(n) {
+  const result = n * 2;
+  return result;
+}
+console.log(double(5));",,"The function computes result but never returns it, so the function returns undefined implicitly. Adding return result (or return n * 2 directly) sends the computed value back to the caller.",10,2026-05-15 16:49:50.143672+00
+JSI031,intermediate,error-handling,output_prediction,"What will the following code log to the console?
+
+try {
+  const result = 10 / 0;
+  console.log(result);
+} catch (e) {
+  console.log(""Error:"", e.message);
+} finally {
+  console.log(""Done"");
+}","Infinity
+Done",,"In JavaScript, dividing a number by 0 does not throw — it returns Infinity. So the try block logs Infinity, the catch block is skipped, and finally always runs, logging 'Done'.",,2026-05-15 16:49:50.143672+00
+JSI032,intermediate,error-handling,write_the_code,"Write a function called safeDivide that divides a by b. If b is 0, throw an Error with the message 'Division by zero'. Otherwise return the result.
+
+safeDivide(10, 2) // 5
+safeDivide(10, 0) // throws Error: Division by zero","function safeDivide(a, b) {
+  if (b === 0) throw new Error(""Division by zero"");
+  return a / b;
+}",,throw immediately stops execution and propagates an error up the call stack. Callers can catch it with try/catch. Using a descriptive Error message makes debugging much easier than throwing a plain string.,,2026-05-15 16:49:50.143672+00
+JSI033,intermediate,error-handling,spot_the_bug,"Find and fix the bug. The code should log 'caught' when an error is thrown:
+
+try {
+  throw ""something went wrong"";
+} catch {
+  console.log(""caught"");
+} catch (e) {
+  console.log(e);
+}","try {
+  throw ""something went wrong"";
+} catch (e) {
+  console.log(""caught"");
+}",,A try block can only have one catch clause. Having two catch blocks is a syntax error. Remove the duplicate and use a single catch to handle all thrown values.,caught,2026-05-15 16:49:50.143672+00
+JSI034,intermediate,classes,output_prediction,"What will the following code log to the console?
+
+class Animal {
+  constructor(name) {
+    this.name = name;
+  }
+  speak() {
+    return `${this.name} makes a sound.`;
+  }
+}
+const dog = new Animal(""Rex"");
+console.log(dog.speak());",Rex makes a sound.,,"The constructor stores name on the instance. speak() accesses this.name, which refers to the current instance's name property. Calling dog.speak() returns 'Rex makes a sound.'.",,2026-05-15 16:49:50.143672+00
+JSI035,intermediate,classes,write_the_code,"Write a class called Rectangle with a constructor that takes width and height. Add a method area() that returns the area, and a method perimeter() that returns the perimeter.
+
+const r = new Rectangle(4, 5);
+r.area()      // 20
+r.perimeter() // 18","class Rectangle {
+  constructor(width, height) {
+    this.width = width;
+    this.height = height;
+  }
+  area() {
+    return this.width * this.height;
+  }
+  perimeter() {
+    return 2 * (this.width + this.height);
+  }
+}",,The constructor initialises instance properties. Methods defined in the class body are added to the prototype and shared across all instances. area() returns width × height; perimeter() returns 2 × (width + height).,,2026-05-15 16:49:50.143672+00
+JSI036,intermediate,classes,output_prediction,"What will the following code log to the console?
+
+class Counter {
+  #count = 0;
+  increment() { this.#count++; }
+  value() { return this.#count; }
+}
+const c = new Counter();
+c.increment();
+c.increment();
+console.log(c.value());
+console.log(c.#count);","2
+SyntaxError: Private field '#count' must be declared in an enclosing class",,"Private class fields (prefixed with #) are only accessible inside the class body. c.value() returns 2 correctly, but c.#count outside the class is a SyntaxError — private fields enforce true encapsulation.",,2026-05-15 16:49:50.143672+00
+JSI037,intermediate,strings,output_prediction,"What will the following code log to the console?
+
+const str = ""  Hello, World!  "";
+console.log(str.trim().toLowerCase().replace(""world"", ""JS""));","hello, JS!",,"trim() removes leading/trailing whitespace. toLowerCase() converts to 'hello, world!'. replace('world', 'JS') replaces the first occurrence, producing 'hello, JS!'. Note: replace is case-sensitive by default.",,2026-05-15 16:49:50.143672+00
+JSI038,intermediate,strings,fill_in_the_blank,"Fill in the blank to check if a string contains a substring:
+
+const email = ""user@example.com"";
+console.log(email.___('@')); // true","const email = ""user@example.com"";
+console.log(email.includes('@')); // true",,"includes() returns true if the string contains the specified substring, and false otherwise. It is case-sensitive and a cleaner alternative to indexOf() !== -1.",true,2026-05-15 16:49:50.143672+00
+JSI039,intermediate,strings,write_the_code,"Write a function called countVowels that takes a string and returns the number of vowels (a, e, i, o, u, case-insensitive).
+
+countVowels('Hello World') // 3","function countVowels(str) {
+  return str.toLowerCase().split('').filter(c => 'aeiou'.includes(c)).length;
+}","function countVowels(str) {
+  let count = 0;
+  for (const c of str.toLowerCase()) {
+    if ('aeiou'.includes(c)) count++;
+  }
+  return count;
+}",toLowerCase() handles case-insensitivity. split('') converts the string to an array of characters. filter keeps only those in 'aeiou'. Counting the remaining elements gives the vowel count.,,2026-05-15 16:49:50.143672+00
+JSI040,intermediate,scope,output_prediction,"What will the following code log to the console?
+
+const obj = {
+  value: 10,
+  double() {
+    const helper = () => this.value * 2;
+    return helper();
+  }
+};
+console.log(obj.double());",20,,"double() is a regular method so this refers to obj. helper is an arrow function inside double(), so it inherits this from double's context — also obj. this.value * 2 is 10 * 2 = 20.",,2026-05-15 16:49:50.143672+00
+T010,simple,javascript_basics,write_the_code,Write JavaScript code that declares a const named greeting with value 'Hello' and logs it to the console.	,const greeting = 'Hello'; console.log(greeting);	,,"This row sets language='javascript' instead of 'python', the value seen everywhere else in the dataset. Use it to confirm the admin panel's language filter/dropdown and syntax highlighting handle a second language correctly.	",,2026-07-15 16:39:51.451+00
