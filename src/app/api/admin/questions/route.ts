@@ -1,76 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isAdmin } from '@/lib/auth/admin'
+import {
+  QUESTION_LANGUAGES,
+  validateQuestion,
+  type QuestionLanguage,
+  type QuestionRecord,
+} from '@/lib/question-schema'
 
-const LANGUAGES = ['python', 'javascript', 'sql'] as const
-const TIERS = new Set(['simple', 'intermediate', 'hard', 'expert'])
-const TYPES = new Set([
-  'write_the_code',
-  'fill_in_the_blank',
-  'output_prediction',
-  'what_is_the_result',
-  'spot_the_bug',
-])
+type Lang = QuestionLanguage
+const LANGUAGES = QUESTION_LANGUAGES
 
-type Lang = (typeof LANGUAGES)[number]
-
-type QuestionInput = {
-  id: string
-  language: Lang
-  tier: string
-  topic: string
-  type: string
-  question: string
-  answer: string
-  alternative_answer: string | null
-  explanation: string
-  expected_output: string | null
+function parseBody(body: unknown): QuestionRecord | string {
+  const { question, errors } = validateQuestion(body)
+  if (!question) {
+    const first = errors[0]
+    return first ? `${first.field} ${first.message}` : 'Invalid request'
+  }
+  return question
 }
 
-function parseBody(body: unknown): QuestionInput | string {
-  const b = body as Record<string, unknown>
-  const str = (k: string, max: number, required = true): string | null => {
-    const v = b[k]
-    if (typeof v !== 'string' || v.trim() === '') return required ? null : ''
-    if (v.length > max) return null
-    return v
-  }
-
-  const id = str('id', 30)
-  const language = typeof b.language === 'string' ? b.language : ''
-  const tier = str('tier', 20)
-  const topic = str('topic', 60)
-  const type = str('type', 30)
-  const question = str('question', 10_000)
-  const answer = str('answer', 10_000)
-  const explanation = str('explanation', 10_000)
-  const alt = typeof b.alternative_answer === 'string' ? b.alternative_answer.slice(0, 10_000) : ''
-  const expected = typeof b.expected_output === 'string' ? b.expected_output.slice(0, 10_000) : ''
-
-  if (!id || !/^[A-Za-z0-9_-]+$/.test(id)) return 'Invalid id'
-  if (!LANGUAGES.includes(language as Lang)) return 'Invalid language'
-  if (!tier || !TIERS.has(tier)) return 'Invalid tier'
-  if (!topic) return 'Topic is required'
-  if (!type || !TYPES.has(type)) return 'Invalid type'
-  if (!question) return 'Question is required'
-  if (!answer) return 'Answer is required'
-  if (!explanation) return 'Explanation is required'
-
-  return {
-    id,
-    language: language as Lang,
-    tier,
-    topic,
-    type,
-    question,
-    answer,
-    alternative_answer: alt || null,
-    explanation,
-    expected_output: expected || null,
-  }
-}
-
-function rowData(q: QuestionInput) {
+function rowData(q: QuestionRecord) {
   return {
     tier: q.tier,
     topic: q.topic,

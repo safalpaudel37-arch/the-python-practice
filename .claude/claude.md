@@ -47,7 +47,7 @@ Python execution requires `SharedArrayBuffer` (cross-origin isolation). Chrome a
 | `/python` | Server → Client | Main practice app; fetches all questions from Supabase, renders `DashboardClient` |
 | `/compiler/[id]` | Server → Client | Direct question URL; renders `HomeClient` with `initialQuestionId` |
 | `/compiler` | Client | Standalone editor (no question) |
-| `POST /api/check-answer` | API | Rate-limited (30 req/min); calls Supabase RPC `check_answer(question_id, user_answer)` |
+| `POST /api/check-answer` | API | Rate-limited (30 req/min); server-side check via Prisma (`src/lib/answer-check.ts`): normalised user output vs `expected_output ?? answer` |
 | `POST /api/admin/add-questions` | API | Dev-only bulk upsert; disabled in production by `NODE_ENV` check |
 | `POST /api/attempts` | API | Records client-checked attempts (SQL/JS `write_the_code`); rate-limited |
 | `/login` | Server → Client | Learner login/signup (Supabase Auth, email+password) + "continue as guest" |
@@ -63,7 +63,7 @@ Python execution requires `SharedArrayBuffer` (cross-origin isolation). Chrome a
 2. `DashboardClient` / `HomeClient` hold all UI state (selected question, statuses, attempt counts)
 3. Guest progress lives in `localStorage` via `src/lib/storage.ts` — keys: `qstatus:<id>`, `qattempts:<id>`, `qcode:<id>`, `session:last`. Signed-in users additionally get server-side tracking: every submit records an `attempts` row and upserts `question_progress` (Prisma, `src/lib/tracking.ts`); first solves award +10 points and advance the daily streak on `profiles`.
 4. `Compiler` renders a split editor + output panel and communicates with Pyodide via `WorkerBridge`
-5. On submit, the client POSTs to `/api/check-answer`; the server calls Supabase RPC and returns `{ correct: boolean }`
+5. On submit, the client POSTs to `/api/check-answer`; the server compares via `checkAnswerServer()` (Prisma read, no RPC) and returns `{ correct: boolean }`
 
 ### Python execution (Pyodide)
 
@@ -76,12 +76,14 @@ Python execution requires `SharedArrayBuffer` (cross-origin isolation). Chrome a
 
 Defined in `src/lib/types.ts`. Answer checking differs per type (see `Compiler.tsx`):
 
-| Type | Checking method |
-|------|----------------|
-| `write_the_code` | Normalised stdout vs stored answer |
-| `fill_in_the_blank` | Extracts token filled in place of `___` markers |
-| `output_prediction` / `what_is_the_result` | User types expected output; no code execution |
-| `spot_the_bug` | No auto-check (`AUTO_CHECK_TYPES` excludes it) |
+| Type | Checking method (Python) |
+|------|--------------------------|
+| `write_the_code` | Runs the learner's code; normalised stdout vs `expected_output` |
+| `fill_in_the_blank` | Same — `question` holds the `___` template, `answer` the completed code, graded by stdout vs `expected_output` |
+| `spot_the_bug` | Same — buggy code in `question`, fixed code in `answer`, graded by stdout vs `expected_output` |
+| `output_prediction` / `what_is_the_result` | User types the expected output; compared vs `expected_output ?? answer` (no code execution) |
+
+`expected_output` is therefore **required** for the three run-graded types — without it the checker falls back to comparing stdout against the solution source code, so every submission is marked incorrect. Validation lives in `src/lib/question-schema.ts` (shared by the admin CRUD API, the bulk endpoint, and the admin form); the machine-readable contract for direct DB/MCP inserts is `docs/python-question.schema.json`.
 
 Question ordering rule: `write_the_code` questions must be listed before `fill_in_the_blank` and `output_prediction` within any tier/topic group.
 
@@ -104,11 +106,17 @@ Question ordering rule: `write_the_code` questions must be listed before `fill_i
 
 ### Adding questions
 
-Use the dev-only admin endpoint (disabled in production):
+All insert paths validate through the shared schema `src/lib/question-schema.ts`; the JSON Schema equivalent for direct DB/MCP inserts is `docs/python-question.schema.json`.
+
+**Preferred: the admin panel** (`/zxcvbn/admin/questions`). For run-graded Python types it derives `expected_output` automatically by executing the solution code in Pyodide (via `SolutionRunner`) — on "Run solution → fill" or automatically on save when the field is blank. A solution that errors or prints nothing blocks the save.
+
+**Bulk (dev only, disabled in production):**
 
 ```
 POST http://localhost:3000/api/admin/add-questions
 { "secret": "<ADMIN_SECRET>", "table": "python", "questions": [...] }
 ```
 
-Each question requires: `id`, `tier`, `topic`, `type`, `question`, `answer`, `alternative_answer` (string or null), `explanation`.
+Each question requires: `id`, `tier`, `topic`, `type`, `question`, `answer`, `alternative_answer` (string or null), `explanation` — plus `expected_output` (the solution's exact stdout) for `write_the_code` / `fill_in_the_blank` / `spot_the_bug`.
+
+**Direct DB inserts (e.g. Supabase MCP):** validate against `docs/python-question.schema.json` first. Multi-line code must keep real newline characters — flattening them to spaces (or storing literal `\n`) produces invalid Python in the stored solution.

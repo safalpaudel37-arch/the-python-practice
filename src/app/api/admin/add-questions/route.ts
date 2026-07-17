@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminClient } from '@/lib/supabase/admin-client'
+import { validateQuestion, type QuestionLanguage, type QuestionRecord } from '@/lib/question-schema'
 
 const TABLE_MAP: Record<string, string> = {
   javascript: 'javascript_questions',
@@ -10,28 +11,7 @@ const TABLE_MAP: Record<string, string> = {
   sql:        'sql_questions',
 }
 
-const VALID_TIERS = ['simple', 'intermediate', 'hard', 'expert'] as const
-const VALID_TYPES = [
-  'write_the_code',
-  'fill_in_the_blank',
-  'output_prediction',
-  'spot_the_bug',
-  'what_is_the_result',
-] as const
-
 const MAX_BATCH = 100
-
-interface QuestionInput {
-  id: string
-  tier: string
-  topic: string
-  type: string
-  question: string
-  answer: string
-  alternative_answer: string | null
-  explanation: string
-  expected_output?: string | null
-}
 
 interface ValidationError {
   index: number
@@ -39,46 +19,23 @@ interface ValidationError {
   message: string
 }
 
-function validateQuestions(questions: unknown[]): ValidationError[] {
+// Per-item validation via the shared schema (src/lib/question-schema.ts) —
+// the table param decides the language, so python rows get the python
+// per-type rules (expected_output required for run-graded types, etc.).
+function validateQuestions(
+  questions: unknown[],
+  language: QuestionLanguage
+): { rows: QuestionRecord[]; errors: ValidationError[] } {
+  const rows: QuestionRecord[] = []
   const errors: ValidationError[] = []
 
   questions.forEach((q, i) => {
-    if (typeof q !== 'object' || q === null) {
-      errors.push({ index: i, field: 'root', message: 'must be an object' })
-      return
-    }
-    const item = q as Record<string, unknown>
-
-    if (typeof item.id !== 'string' || item.id.trim() === '') {
-      errors.push({ index: i, field: 'id', message: 'must be a non-empty string' })
-    }
-    if (!VALID_TIERS.includes(item.tier as never)) {
-      errors.push({ index: i, field: 'tier', message: `must be one of: ${VALID_TIERS.join(', ')}` })
-    }
-    if (typeof item.topic !== 'string' || item.topic.trim() === '') {
-      errors.push({ index: i, field: 'topic', message: 'must be a non-empty string' })
-    }
-    if (!VALID_TYPES.includes(item.type as never)) {
-      errors.push({ index: i, field: 'type', message: `must be one of: ${VALID_TYPES.join(', ')}` })
-    }
-    if (typeof item.question !== 'string' || item.question.trim() === '') {
-      errors.push({ index: i, field: 'question', message: 'must be a non-empty string' })
-    }
-    if (typeof item.answer !== 'string' || item.answer.trim() === '') {
-      errors.push({ index: i, field: 'answer', message: 'must be a non-empty string' })
-    }
-    if (item.alternative_answer !== null && typeof item.alternative_answer !== 'string') {
-      errors.push({ index: i, field: 'alternative_answer', message: 'must be a string or null' })
-    }
-    if (typeof item.explanation !== 'string' || item.explanation.trim() === '') {
-      errors.push({ index: i, field: 'explanation', message: 'must be a non-empty string' })
-    }
-    if ('expected_output' in item && item.expected_output !== null && typeof item.expected_output !== 'string') {
-      errors.push({ index: i, field: 'expected_output', message: 'must be a string or null' })
-    }
+    const { question, errors: fieldErrors } = validateQuestion(q, language)
+    if (question) rows.push(question)
+    else fieldErrors.forEach((e) => errors.push({ index: i, ...e }))
   })
 
-  return errors
+  return { rows, errors }
 }
 
 export async function POST(req: NextRequest) {
@@ -122,21 +79,24 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const validationErrors = validateQuestions(questions)
+  const { rows: validated, errors: validationErrors } = validateQuestions(
+    questions,
+    table as QuestionLanguage
+  )
   if (validationErrors.length > 0) {
     return NextResponse.json({ errors: validationErrors }, { status: 400 })
   }
 
-  const rows = (questions as QuestionInput[]).map((q) => ({
-    id:                 q.id.trim(),
+  const rows = validated.map((q) => ({
+    id:                 q.id,
     tier:               q.tier,
-    topic:              q.topic.trim(),
+    topic:              q.topic,
     type:               q.type,
     question:           q.question,
     answer:             q.answer,
-    alternative_answer: q.alternative_answer ?? null,
+    alternative_answer: q.alternative_answer,
     explanation:        q.explanation,
-    expected_output:    q.expected_output ?? null,
+    expected_output:    q.expected_output,
   }))
 
   const tableName = TABLE_MAP[table]

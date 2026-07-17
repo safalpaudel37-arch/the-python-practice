@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "python-question.schema.json",
+  "title": "Python practice question (row of the `questions` table)",
+  "description": "Contract for inserting Python questions — via the admin panel, POST /api/admin/add-questions, or directly into Supabase (e.g. through an MCP server). Derived from the live data export (public/questions_rows-1.csv). Mirrors the runtime validator in src/lib/question-schema.ts — keep the two in sync. CRITICAL for direct inserts: multi-line code in `question`/`answer` must contain real newline characters. Never flatten newlines to spaces (produces invalid Python) and never store the literal two-character sequence \\n.",
+  "type": "object",
+  "required": ["id", "tier", "topic", "type", "question", "answer", "explanation"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,30}$",
+      "description": "Unique id. Convention: tier initial + zero-padded number — S=simple, I=intermediate, H=hard, E=expert (e.g. \"S031\")."
+    },
+    "language": {
+      "const": "python",
+      "description": "Defaults to \"python\" in the DB; may be omitted on insert."
+    },
+    "tier": {
+      "enum": ["simple", "intermediate", "hard", "expert"]
+    },
+    "topic": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 60,
+      "description": "Lowercase topic tag, e.g. \"loops\", \"dataclasses\"."
+    },
+    "type": {
+      "enum": [
+        "write_the_code",
+        "fill_in_the_blank",
+        "output_prediction",
+        "what_is_the_result",
+        "spot_the_bug"
+      ]
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10000,
+      "description": "The prompt. For fill_in_the_blank / spot_the_bug (and usually prediction types): prose, then a blank line, then the code block — splitPrompt() uses the first blank line to pre-fill the editor."
+    },
+    "answer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10000,
+      "description": "write_the_code: full solution code. fill_in_the_blank: the completed code (blanks filled). spot_the_bug: the fixed code. output_prediction / what_is_the_result: the EXACT output string the learner must type."
+    },
+    "alternative_answer": {
+      "type": ["string", "null"],
+      "maxLength": 10000,
+      "description": "Optional second accepted answer/output. Null if none."
+    },
+    "explanation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10000,
+      "description": "Shown after solving — why the answer works."
+    },
+    "expected_output": {
+      "type": ["string", "null"],
+      "maxLength": 10000,
+      "description": "The exact stdout produced by running the solution. REQUIRED for write_the_code / fill_in_the_blank / spot_the_bug: the checker (src/lib/answer-check.ts) compares the learner's stdout against this — without it the check falls back to the solution source code and every submission is marked incorrect. For prediction types it may be null (falls back to `answer`)."
+    },
+    "created_at": {
+      "type": "string",
+      "description": "Set by the DB default — omit on insert."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": { "enum": ["write_the_code", "fill_in_the_blank", "spot_the_bug"] }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "required": ["expected_output"],
+        "properties": {
+          "expected_output": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "type": { "const": "fill_in_the_blank" } },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "question": { "pattern": "___" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": { "enum": ["fill_in_the_blank", "spot_the_bug"] }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "question": { "pattern": "\\n\\n" }
+        }
+      }
+    }
+  ]
+}

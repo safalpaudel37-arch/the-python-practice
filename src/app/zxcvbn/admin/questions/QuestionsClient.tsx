@@ -1,12 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 // Modals portal to <body> so they escape .pp-screen's transform, which would
 // otherwise anchor their `position: fixed` to the page instead of the viewport.
 import { useRouter } from 'next/navigation'
-import { Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react'
 import { TIER_ORDER, TIER_LABELS, TYPE_SHORT_LABELS } from '@/lib/config'
+import { RUN_GRADED_TYPES, validateQuestion } from '@/lib/question-schema'
+import { SolutionRunner } from '@/components/execution/solution-runner'
 
 export type AdminQuestion = {
   id: string
@@ -31,6 +33,18 @@ const TYPES = [
   'what_is_the_result',
   'spot_the_bug',
 ]
+
+/** Per-type authoring hints — shown under the type picker for Python. */
+const TYPE_HINTS: Record<string, string> = {
+  write_the_code:
+    'Answer = full solution code. Graded by running the learner’s code and comparing its output to “Expected output”.',
+  fill_in_the_blank:
+    'Question = prose, a blank line, then code with ___ markers. Answer = the completed code. Graded by output.',
+  spot_the_bug:
+    'Question = prose, a blank line, then the buggy code. Answer = the fixed code. Graded by output.',
+  output_prediction: 'Answer = the exact output the learner must type. No code is run.',
+  what_is_the_result: 'Answer = the exact output the learner must type. No code is run.',
+}
 
 const EMPTY_FORM = {
   id: '',
@@ -62,8 +76,14 @@ export function QuestionsClient({ questions }: { questions: AdminQuestion[] }) {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [deleting, setDeleting] = useState<AdminQuestion | null>(null)
   const [busy, setBusy] = useState(false)
+  const [running, setRunning] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+
+  // Pyodide runner for deriving expected_output from the solution code.
+  // Spawned on first use, kept warm across modal opens, killed on unmount.
+  const runnerRef = useRef<SolutionRunner | null>(null)
+  useEffect(() => () => runnerRef.current?.dispose(), [])
 
   const filtered = useMemo(
     () =>
@@ -103,14 +123,62 @@ export function QuestionsClient({ questions }: { questions: AdminQuestion[] }) {
     setModal('edit')
   }
 
+  const isRunGraded = form.language === 'python' && RUN_GRADED_TYPES.has(form.type)
+
+  /**
+   * Run the solution code in Pyodide and fill expected_output with its stdout.
+   * Returns the captured output, or null on failure (error state already set).
+   */
+  const deriveOutput = async (): Promise<string | null> => {
+    if (!form.answer.trim()) {
+      setError('Write the solution code in “Answer” first, then run it.')
+      return null
+    }
+    setError('')
+    setRunning(true)
+    try {
+      const runner = (runnerRef.current ??= new SolutionRunner())
+      const result = await runner.run(form.answer)
+      if (!result.ok) {
+        setError(`Solution run failed: ${result.message}`)
+        return null
+      }
+      const stdout = result.stdout.replace(/\n$/, '')
+      if (!stdout.trim()) {
+        setError('The solution produced no output — add a print(), or fill the expected output manually.')
+        return null
+      }
+      set('expected_output')(stdout)
+      return stdout
+    } finally {
+      setRunning(false)
+    }
+  }
+
   const save = async () => {
     setBusy(true)
     setError('')
     try {
+      // Run-graded Python questions are checked against the solution's stdout —
+      // if the admin left the field blank, derive it by running the solution now.
+      let expected = form.expected_output
+      if (isRunGraded && !expected.trim()) {
+        const derived = await deriveOutput()
+        if (derived === null) return
+        expected = derived
+      }
+
+      const payload = { ...form, expected_output: expected }
+      const { errors } = validateQuestion(payload)
+      if (errors.length > 0) {
+        setError(`${errors[0].field} ${errors[0].message}`)
+        return
+      }
+
       const res = await fetch('/api/admin/questions', {
         method: modal === 'add' ? 'POST' : 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Save failed')
@@ -335,6 +403,11 @@ export function QuestionsClient({ questions }: { questions: AdminQuestion[] }) {
                       </button>
                     ))}
                   </div>
+                  {form.language === 'python' && TYPE_HINTS[form.type] && (
+                    <p className="mt-1.5 text-[11.5px] leading-snug text-ink-3">
+                      {TYPE_HINTS[form.type]}
+                    </p>
+                  )}
                 </div>
 
                 <Field label="Question" tall>
@@ -380,18 +453,31 @@ export function QuestionsClient({ questions }: { questions: AdminQuestion[] }) {
                   />
                 </Field>
 
-                {form.language === 'python' &&
-                  (form.type === 'write_the_code' ||
-                    form.type === 'fill_in_the_blank' ||
-                    form.type === 'spot_the_bug') && (
-                  <Field label="Expected output (stdout of the solution — used by the checker)" tall>
-                    <textarea
-                      value={form.expected_output}
-                      onChange={(e) => set('expected_output')(e.target.value)}
-                      rows={2}
-                      className="w-full resize-y bg-transparent font-mono text-[12.5px] outline-none"
-                    />
-                  </Field>
+                {isRunGraded && (
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between gap-2">
+                      <span className="text-[12.5px] font-semibold text-ink-2">
+                        Expected output (stdout of the solution — used by the checker)
+                      </span>
+                      <button
+                        onClick={deriveOutput}
+                        disabled={running || busy}
+                        className="flex shrink-0 items-center gap-1 rounded-[8px] border-[1.5px] border-line-2 px-2.5 py-1 text-[11.5px] font-semibold text-ink-2 hover:border-blue hover:text-blue disabled:opacity-60"
+                      >
+                        <Play className="size-3" />
+                        {running ? 'Running…' : 'Run solution → fill'}
+                      </button>
+                    </div>
+                    <div className="rounded-[10px] border-[1.5px] border-line-2 bg-surface px-3 py-2 text-[13.5px] focus-within:border-copper focus-within:shadow-[0_0_0_3px_var(--copper-050)]">
+                      <textarea
+                        value={form.expected_output}
+                        onChange={(e) => set('expected_output')(e.target.value)}
+                        rows={2}
+                        placeholder="Leave blank — derived automatically by running the solution on save"
+                        className="w-full resize-y bg-transparent font-mono text-[12.5px] outline-none placeholder:text-ink-3"
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
 
