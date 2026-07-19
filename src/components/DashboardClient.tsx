@@ -5,7 +5,7 @@ import { useTheme } from '@/lib/hooks/useTheme';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Moon, Sun, Search, Trophy } from 'lucide-react';
-import type { Question, Tier, QuestionStatus } from '@/lib/types';
+import type { Question, Tier, QuestionStatus, QuestionType } from '@/lib/types';
 import type { CurrentUser } from '@/lib/auth/user';
 import type { QuestionStats } from '@/lib/tracking';
 import { getAllStatuses, getLastSession, clearGuestData } from '@/lib/storage';
@@ -28,6 +28,13 @@ const STATUS_FILTERS: { value: QuestionStatus | null; label: string }[] = [
   { value: 'not_started', label: 'Not started' },
   { value: 'attempted', label: 'Attempted' },
   { value: 'solved', label: 'Solved' },
+];
+
+const TYPE_FILTERS: { value: QuestionType; label: string }[] = [
+  { value: 'write_the_code', label: 'Write the code' },
+  { value: 'fill_in_the_blank', label: 'Fill the blank' },
+  { value: 'output_prediction', label: 'Predict output' },
+  { value: 'spot_the_bug', label: 'Spot the bug' },
 ];
 
 const STATUS_META: Record<QuestionStatus, { icon: string; cls: string }> = {
@@ -70,6 +77,7 @@ export default function DashboardClient({
   const [activeTier, setActiveTier] = useState<Tier>('simple');
   const [activeTopic, setActiveTopic] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<QuestionStatus | null>(null);
+  const [typeFilter, setTypeFilter] = useState<QuestionType | null>(null);
   const [search, setSearch] = useState('');
   const [statuses, setStatuses] = useState<Record<string, QuestionStatus>>(serverStatuses);
   const [resume, setResume] = useState<{ questionId: string } | null>(null);
@@ -119,6 +127,7 @@ export default function DashboardClient({
       questions.filter((q) => {
         if (q.tier !== activeTier) return false;
         if (activeTopic && q.topic !== activeTopic) return false;
+        if (typeFilter && q.type !== typeFilter) return false;
         if (statusFilter && (statuses[q.id] ?? 'not_started') !== statusFilter) return false;
         if (search) {
           const s = search.toLowerCase();
@@ -127,12 +136,12 @@ export default function DashboardClient({
         }
         return true;
       }),
-    [questions, activeTier, activeTopic, statusFilter, search, statuses]
+    [questions, activeTier, activeTopic, typeFilter, statusFilter, search, statuses]
   );
 
   const totalSolved = questions.filter((q) => statuses[q.id] === 'solved').length;
   const overallPct = questions.length ? Math.round((totalSolved / questions.length) * 100) : 0;
-  const hasFilters = activeTopic !== null || statusFilter !== null || search !== '';
+  const hasFilters = activeTopic !== null || statusFilter !== null || typeFilter !== null || search !== '';
   const resumeQuestion = resume ? questions.find((q) => q.id === resume.questionId) : null;
 
   return (
@@ -346,6 +355,7 @@ export default function DashboardClient({
                       onClick={() => {
                         setActiveTopic(null);
                         setStatusFilter(null);
+                        setTypeFilter(null);
                         setSearch('');
                       }}
                       className="text-[12.5px] font-semibold text-copper hover:text-copper-600"
@@ -353,6 +363,33 @@ export default function DashboardClient({
                       Clear all ✕
                     </button>
                   )}
+                </div>
+
+                {/* Type chips */}
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setTypeFilter(null)}
+                    className={`rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-medium ${
+                      typeFilter === null
+                        ? 'border-blue bg-blue-050 text-blue'
+                        : 'border-line-2 text-ink-2 hover:border-blue/50'
+                    }`}
+                  >
+                    All types
+                  </button>
+                  {TYPE_FILTERS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => setTypeFilter(value === typeFilter ? null : value)}
+                      className={`rounded-full border-[1.5px] px-3 py-1 text-[12.5px] font-medium ${
+                        typeFilter === value
+                          ? 'border-blue bg-blue-050 text-blue'
+                          : 'border-line-2 text-ink-2 hover:border-blue/50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Question cards */}
@@ -406,6 +443,7 @@ export default function DashboardClient({
                         onClick={() => {
                           setActiveTopic(null);
                           setStatusFilter(null);
+                          setTypeFilter(null);
                           setSearch('');
                         }}
                         className="mt-4 rounded-[9px] bg-blue px-4 py-2 text-[13px] font-semibold text-on-blue hover:bg-blue-600"
